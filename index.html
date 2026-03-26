@@ -539,7 +539,12 @@
       <select class="fi" id="bSort">
         <option value="autoBleedSpend">Sort: Auto Bleed ₹</option>
         <option value="totalSpend">Sort: Total Spend</option>
+        <option value="bleedPct">Sort: Bleed %</option>
         <option value="explicitOrders">Sort: Explicit Orders</option>
+        <option value="autoOrders">Sort: Auto Orders</option>
+        <option value="totalOrders">Sort: Total Orders</option>
+        <option value="explicitAcos">Sort: Explicit ACOS</option>
+        <option value="autoAcos">Sort: Auto ACOS</option>
         <option value="impressionShare">Sort: IS %</option>
       </select>
       <button class="btn primary" onclick="resetF('bleed')">Reset</button>
@@ -821,22 +826,76 @@ function processData(rows, filename) {
   const bleedData = [];
   byTerm.forEach((rows, term) => {
     const explicit = rows.filter(r=>r.isExplicit);
-    const auto = rows.filter(r=>!r.isExplicit);
+    const auto     = rows.filter(r=>!r.isExplicit);
     if (explicit.length===0 || auto.length===0) return;
     const autoBleedSpend = auto.reduce((s,r)=>s+r.spend,0);
     if (autoBleedSpend < 50) return;
+
     const totalSpend = rows.reduce((s,r)=>s+r.spend,0);
     const repRow = rows.reduce((a,b)=>b.isShare>a.isShare?b:a, rows[0]);
+
+    // — Explicit aggregates —
+    const expSpend   = explicit.reduce((s,r)=>s+r.spend,0);
+    const expSales   = explicit.reduce((s,r)=>s+r.sales,0);
+    const expOrders  = explicit.reduce((s,r)=>s+r.orders,0);
+    const expClicks  = explicit.reduce((s,r)=>s+r.clicks,0);
+    const expImpr    = explicit.reduce((s,r)=>s+r.impressions,0);
+
+    // — Auto aggregates —
+    const autoSales  = auto.reduce((s,r)=>s+r.sales,0);
+    const autoOrders = auto.reduce((s,r)=>s+r.orders,0);
+    const autoClicks = auto.reduce((s,r)=>s+r.clicks,0);
+    const autoImpr   = auto.reduce((s,r)=>s+r.impressions,0);
+
+    // — Combined —
+    const totalSales   = expSales + autoSales;
+    const totalOrders  = expOrders + autoOrders;
+    const totalClicks  = expClicks + autoClicks;
+    const totalImpr    = expImpr + autoImpr;
+
     bleedData.push({
       searchTerm: term,
       impressionShare: repRow.isShare * 100,
-      explicitCampaigns: [...new Set(explicit.map(r=>r.campaign))],
-      autoCampaigns: [...new Set(auto.map(r=>r.campaign))],
-      explicitSpend: explicit.reduce((s,r)=>s+r.spend,0),
+      isRank: repRow.isRank,
+      category: repRow.category,
+      branded: repRow.branded,
+
+      // explicit
+      explicitCampaigns : [...new Set(explicit.map(r=>r.campaign))],
+      explicitSpend,
+      explicitSales : expSales,
+      explicitOrders,
+      explicitClicks : expClicks,
+      explicitImpr   : expImpr,
+      explicitAcos   : expSales>0 ? +(expSpend/expSales*100).toFixed(2) : 0,
+      explicitCvr    : expClicks>0 ? +(expOrders/expClicks*100).toFixed(2) : 0,
+      explicitCtr    : expImpr>0  ? +(expClicks/expImpr*100).toFixed(2) : 0,
+      explicitCpc    : expClicks>0 ? +(expSpend/expClicks).toFixed(2) : 0,
+      explicitRoas   : expSpend>0 ? +(expSales/expSpend).toFixed(2) : 0,
+
+      // auto bleed
+      autoCampaigns  : [...new Set(auto.map(r=>r.campaign))],
       autoBleedSpend,
-      explicitOrders: explicit.reduce((s,r)=>s+r.orders,0),
-      autoOrders: auto.reduce((s,r)=>s+r.orders,0),
+      autoSales,
+      autoOrders,
+      autoClicks,
+      autoImpr,
+      autoAcos  : autoSales>0 ? +(autoBleedSpend/autoSales*100).toFixed(2) : 0,
+      autoCvr   : autoClicks>0 ? +(autoOrders/autoClicks*100).toFixed(2) : 0,
+      autoCtr   : autoImpr>0  ? +(autoClicks/autoImpr*100).toFixed(2) : 0,
+      autoCpc   : autoClicks>0 ? +(autoBleedSpend/autoClicks).toFixed(2) : 0,
+      autoRoas  : autoBleedSpend>0 ? +(autoSales/autoBleedSpend).toFixed(2) : 0,
+
+      // totals
       totalSpend,
+      totalSales,
+      totalOrders,
+      totalClicks,
+      totalImpr,
+      totalAcos : totalSales>0 ? +(totalSpend/totalSales*100).toFixed(2) : 0,
+      totalCvr  : totalClicks>0 ? +(totalOrders/totalClicks*100).toFixed(2) : 0,
+      totalCtr  : totalImpr>0  ? +(totalClicks/totalImpr*100).toFixed(2) : 0,
+      bleedPct  : +(autoBleedSpend/totalSpend*100).toFixed(1),
     });
   });
   bleedData.sort((a,b)=>b.autoBleedSpend-a.autoBleedSpend);
@@ -1124,35 +1183,139 @@ function buildISGapTab() {
 function buildBleedTab() {
   const data = G.bleedData;
   const totalAutoBleed = data.reduce((s,d)=>s+d.autoBleedSpend,0);
-  document.getElementById('bleedMeta').textContent = `${fmt.inr(totalAutoBleed)} leaking into auto campaigns from ${data.length} explicitly-targeted terms`;
+  const totalBleedOrders = data.reduce((s,d)=>s+d.autoOrders,0);
+  document.getElementById('bleedMeta').textContent =
+    `${fmt.inr(totalAutoBleed)} bleeding into auto campaigns · ${totalBleedOrders} auto orders · ${data.length} search terms affected`;
+
+  // helper: mini metric pill
+  const mp = (label, val, col='var(--text2)') =>
+    `<div style="display:flex;flex-direction:column;gap:2px;min-width:70px">
+       <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-family:var(--mono)">${label}</span>
+       <span style="font-size:12px;font-weight:600;font-family:var(--mono);color:${col}">${val}</span>
+     </div>`;
+
+  const acosColor = v => v===0?'var(--text3)':v<60?'#10b981':v<100?'#f59e0b':'#ef4444';
+  const cvrColor  = v => v===0?'var(--text3)':v>15?'#10b981':v>6?'#f59e0b':'#ef4444';
 
   _pages['bleedTbl'] = null;
   renderTable({
     id:'bleedTbl', pgId:'bleedPgr', countId:'bCount',
     data, pageSize:12, sortKey:'autoBleedSpend', sortDir:-1,
     cols:[
-      {label:'#', render:()=>'', cls:'mono'},
-      {label:'Search Term', render:d=>`<span style="max-width:200px;display:block;overflow:hidden;text-overflow:ellipsis">${renderWithASIN(d.searchTerm, 28)}</span>`, cls:'name'},
-      {label:'IS %', key:'impressionShare', render:d=>isBar(d.impressionShare)},
-      {label:'Explicit Camps', render:d=>`<span style="color:#60a5fa;font-family:var(--mono);font-size:11px">${d.explicitCampaigns.length}</span>`},
-      {label:'Explicit Spend', key:'explicitSpend', render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.explicitSpend)}</span>`},
-      {label:'Explicit Orders', key:'explicitOrders', render:d=>`<span style="color:#34d399;font-weight:600;font-family:var(--mono)">${d.explicitOrders}</span>`},
-      {label:'Auto Camps', render:d=>`<span style="color:#f59e0b;font-family:var(--mono);font-size:11px">${d.autoCampaigns.length}</span>`},
-      {label:'Auto Bleed ₹', key:'autoBleedSpend', render:d=>`<span style="color:#f59e0b;font-weight:600;font-family:var(--mono)">${fmt.inr(d.autoBleedSpend)}</span>`},
-      {label:'Auto Orders', key:'autoOrders', render:d=>`<span style="color:${d.autoOrders>0?'#a78bfa':'var(--text3)'};font-family:var(--mono)">${d.autoOrders}</span>`},
-      {label:'Bleed %', key:'autoBleedSpend', render:d=>{
-        const p=(d.autoBleedSpend/d.totalSpend*100).toFixed(0);
-        return `<div class="bleed-split"><div class="bs-bar" style="width:${Math.max(4,(100-parseInt(p))*0.5)}px;background:#3b82f6"></div><div class="bs-bar" style="width:${Math.max(4,parseInt(p)*0.5)}px;background:#f59e0b"></div><span style="font-size:10px;color:var(--text3);font-family:var(--mono)">${p}%</span></div>`;
+      {label:'#',        cls:'mono',  render:()=>''},
+      {label:'Search Term', render:d=>`<div style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${renderWithASIN(d.searchTerm,28)}</div><div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)">${d.category||''} · ${d.branded||''}</div>`, cls:'name'},
+      {label:'IS %',     key:'impressionShare', render:d=>isBar(d.impressionShare)},
+
+      // ── EXPLICIT block ──
+      {label:'EXP. CAMPS',  render:d=>`<span style="color:#60a5fa;font-family:var(--mono);font-weight:600">${d.explicitCampaigns.length}</span>`},
+      {label:'EXP. SPEND',  key:'explicitSpend',  render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.explicitSpend)}</span>`},
+      {label:'EXP. SALES',  key:'explicitSales',  render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.explicitSales)}</span>`},
+      {label:'EXP. ORDERS', key:'explicitOrders', render:d=>`<span style="color:#34d399;font-weight:600;font-family:var(--mono)">${d.explicitOrders}</span>`},
+      {label:'EXP. ACOS',   key:'explicitAcos',   render:d=>acosCol(d.explicitAcos)},
+      {label:'EXP. CVR%',   key:'explicitCvr',    render:d=>`<span style="color:${cvrColor(d.explicitCvr)};font-family:var(--mono);font-size:11px">${d.explicitCvr.toFixed(1)}%</span>`},
+      {label:'EXP. CTR%',   key:'explicitCtr',    render:d=>`<span style="font-family:var(--mono);font-size:11px;color:var(--text2)">${d.explicitCtr.toFixed(2)}%</span>`},
+      {label:'EXP. CPC',    key:'explicitCpc',    render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.explicitCpc)}</span>`},
+
+      // ── AUTO BLEED block ──
+      {label:'AUTO CAMPS',  render:d=>`<span style="color:#f59e0b;font-family:var(--mono);font-weight:600">${d.autoCampaigns.length}</span>`},
+      {label:'AUTO SPEND ⚡', key:'autoBleedSpend', render:d=>`<span style="color:#f59e0b;font-weight:700;font-family:var(--mono)">${fmt.inr(d.autoBleedSpend)}</span>`},
+      {label:'AUTO SALES',  key:'autoSales',   render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.autoSales)}</span>`},
+      {label:'AUTO ORDERS', key:'autoOrders',  render:d=>`<span style="color:${d.autoOrders>0?'#a78bfa':'var(--text3)'};font-weight:600;font-family:var(--mono)">${d.autoOrders}</span>`},
+      {label:'AUTO ACOS',   key:'autoAcos',    render:d=>acosCol(d.autoAcos)},
+      {label:'AUTO CVR%',   key:'autoCvr',     render:d=>`<span style="color:${cvrColor(d.autoCvr)};font-family:var(--mono);font-size:11px">${d.autoCvr.toFixed(1)}%</span>`},
+      {label:'AUTO CTR%',   key:'autoCtr',     render:d=>`<span style="font-family:var(--mono);font-size:11px;color:var(--text2)">${d.autoCtr.toFixed(2)}%</span>`},
+      {label:'AUTO CPC',    key:'autoCpc',     render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.autoCpc)}</span>`},
+
+      // ── COMBINED ──
+      {label:'TOTAL SPEND', key:'totalSpend',  render:d=>`<span style="font-family:var(--mono);font-size:11px;font-weight:600">${fmt.inr(d.totalSpend)}</span>`},
+      {label:'TOTAL SALES', key:'totalSales',  render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.totalSales)}</span>`},
+      {label:'TOTAL ACOS',  key:'totalAcos',   render:d=>acosCol(d.totalAcos)},
+      {label:'BLEED %',     key:'bleedPct',    render:d=>{
+        const p=d.bleedPct;
+        const col=p>50?'#ef4444':p>25?'#f59e0b':'#10b981';
+        return `<div style="display:flex;align-items:center;gap:6px">
+          <div style="width:50px;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
+            <div style="width:${Math.min(p,100)}%;height:100%;background:${col};border-radius:3px"></div>
+          </div>
+          <span style="font-family:var(--mono);font-size:11px;color:${col};font-weight:600">${p}%</span>
+        </div>`;
       }},
-      {label:'Action', render:()=>`<span class="etag etag-neg">✗ Neg in Auto</span>`},
-      {label:'▼', render:()=>`<span style="color:var(--text3);font-size:12px">+</span>`},
+      {label:'ACTION',  render:()=>`<span class="etag etag-neg">✗ Neg in Auto</span>`},
+      {label:'▼',       render:()=>`<span style="color:var(--text3);font-size:12px">+</span>`},
     ],
+
     expandFn: row => {
-      let h = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">`;
-      h += `<div><div class="exp-title" style="color:#60a5fa">🎯 Explicit Campaigns (${row.explicitCampaigns.length})</div><div class="camp-grid">${row.explicitCampaigns.map(c=>`<div style="padding:6px 10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:5px;font-size:11px;font-family:var(--mono);color:#93c5fd;overflow:hidden;text-overflow:ellipsis">${c}</div>`).join('')}</div></div>`;
-      h += `<div><div class="exp-title" style="color:#f59e0b">⚡ Auto Bleed Campaigns (${row.autoCampaigns.length})</div><div class="camp-grid">${row.autoCampaigns.map(c=>`<div style="padding:6px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:5px;font-size:11px;font-family:var(--mono);color:#fcd34d;overflow:hidden;text-overflow:ellipsis">${c}</div>`).join('')}</div></div>`;
+      // Metric comparison panel
+      const metricRow = (label, expVal, autoVal, fmt_fn, better='lower') => {
+        const ev = fmt_fn(expVal), av = fmt_fn(autoVal);
+        let expMark='', autoMark='';
+        if (expVal!==0 && autoVal!==0) {
+          const expBetter = better==='lower' ? expVal<=autoVal : expVal>=autoVal;
+          expMark  = expBetter  ? `<span style="color:#10b981;font-size:9px;margin-left:3px">▲</span>` : `<span style="color:#ef4444;font-size:9px;margin-left:3px">▼</span>`;
+          autoMark = !expBetter ? `<span style="color:#10b981;font-size:9px;margin-left:3px">▲</span>` : `<span style="color:#ef4444;font-size:9px;margin-left:3px">▼</span>`;
+        }
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:5px 10px;font-size:10px;color:var(--text3);font-family:var(--mono);white-space:nowrap">${label}</td>
+          <td style="padding:5px 14px;font-size:11px;font-family:var(--mono);color:#93c5fd;text-align:right">${ev}${expMark}</td>
+          <td style="padding:5px 14px;font-size:11px;font-family:var(--mono);color:#fcd34d;text-align:right">${av}${autoMark}</td>
+          <td style="padding:5px 14px;font-size:11px;font-family:var(--mono);color:var(--text2);text-align:right">${fmt_fn(expVal+autoVal)}</td>
+        </tr>`;
+      };
+
+      let h = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">`;
+
+      // Left: Explicit campaigns list
+      h += `<div>
+        <div class="exp-title" style="color:#60a5fa">🎯 Explicit Targeting (${row.explicitCampaigns.length} campaign${row.explicitCampaigns.length>1?'s':''})</div>
+        <div class="camp-grid">${row.explicitCampaigns.map(c=>`
+          <div style="padding:6px 10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:5px;font-size:11px;font-family:var(--mono);color:#93c5fd;overflow:hidden;text-overflow:ellipsis" title="${c}">${renderWithASIN(c,50)}</div>
+        `).join('')}</div>
+      </div>`;
+
+      // Right: Auto bleed campaigns list
+      h += `<div>
+        <div class="exp-title" style="color:#f59e0b">⚡ Auto Bleed (${row.autoCampaigns.length} campaign${row.autoCampaigns.length>1?'s':''})</div>
+        <div class="camp-grid">${row.autoCampaigns.map(c=>`
+          <div style="padding:6px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:5px;font-size:11px;font-family:var(--mono);color:#fcd34d;overflow:hidden;text-overflow:ellipsis" title="${c}">${c}</div>
+        `).join('')}</div>
+      </div>`;
       h += `</div>`;
-      h += `<div style="margin-top:10px;padding:8px 11px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:5px;font-size:11px;font-family:var(--mono);color:#f87171">📋 FIX: Add "<strong>${renderWithASIN(row.searchTerm)}</strong>" as Negative Exact Match in: ${row.autoCampaigns.join(' · ')}</div>`;
+
+      // Side-by-side metric comparison table
+      h += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--bg3)">
+              <th style="padding:7px 10px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-family:var(--mono);text-align:left;border-bottom:1px solid var(--border)">Metric</th>
+              <th style="padding:7px 14px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:#60a5fa;font-family:var(--mono);text-align:right;border-bottom:1px solid var(--border)">🎯 Explicit</th>
+              <th style="padding:7px 14px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:#f59e0b;font-family:var(--mono);text-align:right;border-bottom:1px solid var(--border)">⚡ Auto Bleed</th>
+              <th style="padding:7px 14px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-family:var(--mono);text-align:right;border-bottom:1px solid var(--border)">∑ Combined</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${metricRow('Impressions', row.explicitImpr,   row.autoImpr,   v=>fmt.num(v),   'higher')}
+            ${metricRow('Clicks',      row.explicitClicks, row.autoClicks, v=>fmt.num(v),   'higher')}
+            ${metricRow('Spend (₹)',   row.explicitSpend,  row.autoBleedSpend, v=>fmt.inr(v),'lower')}
+            ${metricRow('Sales (₹)',   row.explicitSales,  row.autoSales,  v=>fmt.inr(v),   'higher')}
+            ${metricRow('Orders',      row.explicitOrders, row.autoOrders, v=>v,            'higher')}
+            ${metricRow('ACOS %',      row.explicitAcos,   row.autoAcos,   v=>v>0?v.toFixed(1)+'%':'—','lower')}
+            ${metricRow('CVR %',       row.explicitCvr,    row.autoCvr,    v=>v.toFixed(1)+'%','higher')}
+            ${metricRow('CTR %',       row.explicitCtr,    row.autoCtr,    v=>v.toFixed(2)+'%','higher')}
+            ${metricRow('CPC (₹)',     row.explicitCpc,    row.autoCpc,    v=>v>0?fmt.inr(v):'—','lower')}
+            ${metricRow('ROAS',        row.explicitRoas,   row.autoRoas,   v=>v>0?v.toFixed(2)+'x':'—','higher')}
+          </tbody>
+        </table>
+      </div>`;
+
+      // Fix recommendation
+      const isWorthKeeping = row.autoOrders > 0 && row.autoAcos > 0 && row.autoAcos < 120;
+      h += `<div style="padding:9px 12px;background:${isWorthKeeping?'rgba(245,158,11,0.07)':'rgba(239,68,68,0.06)'};border:1px solid ${isWorthKeeping?'rgba(245,158,11,0.2)':'rgba(239,68,68,0.15)'};border-radius:6px;font-size:11px;font-family:var(--mono);color:${isWorthKeeping?'var(--amber)':'#f87171'}">
+        ${isWorthKeeping
+          ? `⚠ Auto bleed has ${row.autoOrders} order(s) at ${row.autoAcos}% ACOS — evaluate before negating. Consider adding as explicit target instead.`
+          : `📋 FIX: Add <strong>"${row.searchTerm}"</strong> as Negative Exact in: ${row.autoCampaigns.join(' · ')}`
+        }
+      </div>`;
+
       return h;
     }
   });
@@ -1161,7 +1324,7 @@ function buildBleedTab() {
     const q=document.getElementById('bSearch').value.toLowerCase();
     const sf=document.getElementById('bSort').value;
     filterTable('bleedTbl',d=>(!q||d.searchTerm.toLowerCase().includes(q)));
-    if(sf) { _pages['bleedTbl'].filtered.sort((a,b)=>b[sf]-a[sf]); _pages['bleedTbl'].render(); }
+    if(sf){ _pages['bleedTbl'].filtered.sort((a,b)=>b[sf]-a[sf]); _pages['bleedTbl'].render(); }
   }
   document.getElementById('bSearch').addEventListener('input',applyBleedFilter);
   document.getElementById('bSort').addEventListener('change',applyBleedFilter);
