@@ -2,1476 +2,1636 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STR Impression Share Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg:#0a0c10; --bg2:#0f1117; --bg3:#161820; --bg4:#1c1f2a;
-    --border:#252836; --border2:#2e3245;
-    --amber:#f59e0b; --amber-dim:#92610a; --amber-glow:rgba(245,158,11,0.12);
-    --green:#10b981; --green-dim:#065f46;
-    --red:#ef4444; --red-dim:#7f1d1d;
-    --blue:#3b82f6; --purple:#a855f7;
-    --text:#e2e8f0; --text2:#94a3b8; --text3:#64748b;
-    --mono:'IBM Plex Mono',monospace; --sans:'Space Grotesk',sans-serif;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Amazon Ads Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#f0f2f7; --surface:#ffffff; --surface2:#f7f8fc; --surface3:#eef0f6;
+  --border:#e2e5ef; --border2:#cdd1e0;
+  --text:#1a2035; --text2:#4a5470; --text3:#8892ae;
+  --accent:#2563eb; --accent2:#0891b2; --accent3:#d97706; --accent4:#059669;
+  --danger:#dc2626; --warn:#ea580c;
+  --tos:#2563eb; --ros:#059669; --pp:#d97706;
+  --a-color:#2563eb; --b-color:#d97706;
+  --font:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh;}
 
-  /* ── UPLOAD SCREEN ── */
-  #uploadScreen{display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:48px 24px 60px;}
-  .upload-logo{width:52px;height:52px;background:var(--amber);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:20px;font-family:var(--mono);margin-bottom:20px;}
-  .upload-title{font-size:24px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em;text-align:center;}
-  .upload-sub{font-size:12px;color:var(--text3);margin-bottom:32px;font-family:var(--mono);text-align:center;}
-  .drop-zone{width:520px;max-width:100%;border:2px dashed var(--border2);border-radius:16px;padding:44px 40px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg2);position:relative;}
-  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--amber);background:var(--amber-glow);}
-  .drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-  .drop-icon{font-size:44px;margin-bottom:14px;}
-  .drop-title{font-size:16px;font-weight:600;margin-bottom:6px;}
-  .drop-hint{font-size:12px;color:var(--text3);font-family:var(--mono);}
-  .drop-badge{display:inline-flex;align-items:center;gap:6px;margin-top:18px;background:var(--bg3);border:1px solid var(--border2);padding:5px 14px;border-radius:20px;font-size:11px;font-family:var(--mono);color:var(--text3);}
-  .upload-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:32px;max-width:520px;width:100%;}
-  .step{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
-  .step-num{width:26px;height:26px;border-radius:50%;background:var(--amber-glow);border:1px solid var(--amber-dim);color:var(--amber);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-family:var(--mono);}
-  .step-text{font-size:11px;color:var(--text2);line-height:1.5;}
-  .loading-bar{width:520px;max-width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:18px;display:none;}
-  .loading-fill{height:100%;background:var(--amber);border-radius:2px;animation:loadAnim 1.2s ease-in-out infinite;}
-  @keyframes loadAnim{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
-  .upload-error{margin-top:14px;padding:10px 16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:8px;font-size:12px;color:#f87171;font-family:var(--mono);display:none;}
+/* LOADING */
+#loading{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;}
+.load-ring{width:44px;height:44px;border:3px solid #e2e5ef;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-bar{width:220px;height:3px;background:#e2e5ef;border-radius:2px;overflow:hidden;}
+.load-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:lfill 2s ease-out forwards;}
+@keyframes lfill{to{width:100%;}}
+.load-text{color:var(--text3);font-size:13px;font-weight:500;}
 
-  /* ── PREREQUISITES SECTION ── */
-  .prereq-wrap{width:100%;max-width:960px;margin-top:44px;}
-  .prereq-hdr{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
-  .prereq-hdr-line{flex:1;height:1px;background:var(--border);}
-  .prereq-hdr-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);font-family:var(--mono);white-space:nowrap;padding:0 12px;}
-  .prereq-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  .prereq-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-  .prereq-card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg3);}
-  .prereq-card-icon{font-size:14px;}
-  .prereq-card-title{font-size:12px;font-weight:600;}
-  .prereq-card-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto;}
-  .prereq-card-body{padding:14px 16px;}
+/* HEADER */
+header{background:#fff;border-bottom:1px solid var(--border);padding:0 20px;height:50px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;box-shadow:var(--shadow);}
+.logo{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+.logo-pill{background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.06em;}
+.hsep{flex:1;}
+#dateDisplay{color:var(--text3);font-size:11px;font-family:var(--mono);}
 
-  /* data format table */
-  .fmt-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono);}
-  .fmt-table thead th{padding:6px 10px;background:var(--bg4);color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border2);white-space:nowrap;font-weight:500;}
-  .fmt-table thead th.col-amazon{color:#60a5fa;}
-  .fmt-table thead th.col-custom{color:var(--amber);}
-  .fmt-table tbody tr{border-bottom:1px solid var(--border);}
-  .fmt-table tbody tr:last-child{border-bottom:none;}
-  .fmt-table tbody td{padding:6px 10px;color:var(--text2);white-space:nowrap;}
-  .fmt-table tbody td.dim{color:var(--text3);}
-  .fmt-table tbody td.val-sp{color:#60a5fa;font-weight:500;}
-  .fmt-table tbody td.val-type{color:var(--amber);font-weight:500;}
-  .fmt-table tbody td.val-brand-gen{color:#94a3b8;}
-  .fmt-table tbody td.val-brand-comp{color:#c084fc;}
-  .fmt-table tbody td.val-brand-branded{color:#34d399;}
-  .fmt-table tbody td.val-cat{color:var(--text);}
-  .col-divider{border-left:2px solid var(--amber-dim)!important;}
-  .col-divider-hdr{border-left:2px solid var(--amber-dim)!important;}
+/* TABS */
+.tabs{background:#fff;border-bottom:1px solid var(--border);padding:0 20px;display:flex;}
+.tab{padding:11px 16px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.05em;}
+.tab:hover{color:var(--text2);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
 
-  /* campaign mapper */
-  .mapper-note{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:12px;line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:6px;border-left:3px solid var(--amber);}
-  .mapper-table{width:100%;border-collapse:collapse;font-size:11px;}
-  .mapper-table thead th{padding:6px 10px;background:var(--bg4);color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border2);white-space:nowrap;font-family:var(--mono);}
-  .mapper-table thead th.th-camp{color:var(--text2);}
-  .mapper-table thead th.th-mapped{color:var(--amber);}
-  .mapper-table tbody tr{border-bottom:1px solid var(--border);}
-  .mapper-table tbody tr:last-child{border-bottom:none;}
-  .mapper-table tbody td{padding:5px 10px;color:var(--text2);font-family:var(--mono);}
-  .mapper-table tbody td.camp-name{color:var(--text);font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
-  .mapper-table tbody td input,.mapper-table tbody td select{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:3px 7px;border-radius:4px;font-size:10px;font-family:var(--mono);outline:none;width:100%;}
-  .mapper-table tbody td input:focus,.mapper-table tbody td select:focus{border-color:var(--amber);}
-  .badge-mt{display:inline-flex;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;font-family:var(--mono);}
-  .badge-mt-KT{background:rgba(59,130,246,0.15);color:#60a5fa;}
-  .badge-mt-PT{background:rgba(168,85,247,0.15);color:#c084fc;}
-  .badge-mt-Auto{background:rgba(245,158,11,0.15);color:#f59e0b;}
-  .badge-mt-ST{background:rgba(16,185,129,0.15);color:#34d399;}
-  .badge-mt-CT{background:rgba(100,116,139,0.15);color:#94a3b8;}
-  .prereq-footer{margin-top:16px;padding:10px 14px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:7px;font-size:11px;color:var(--text3);font-family:var(--mono);line-height:1.7;}
-  .prereq-footer strong{color:var(--amber);}
+/* FILTER BARS */
+.fbar{background:#fff;border-bottom:1px solid var(--border);padding:9px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.fbar.b-bar{background:#fffbf0;border-bottom-color:#fde68a;}
+.period-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.02em;}
+.period-tag.a{background:#dbeafe;color:#1d4ed8;}
+.period-tag.b{background:#fef3c7;color:#b45309;}
+.fg{display:flex;align-items:center;gap:5px;}
+.fl{color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+select,input[type=date]{background:#fff;border:1px solid var(--border);color:var(--text);padding:5px 9px;border-radius:6px;font-size:12px;font-family:var(--font);cursor:pointer;outline:none;transition:border-color .15s;box-shadow:inset 0 1px 2px rgba(0,0,0,.04);}
+select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,.1);}
+.fsep{width:1px;height:20px;background:var(--border);}
+.qd{display:flex;gap:3px;}
+.qdb{padding:3px 9px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;background:#fff;border:1px solid var(--border);color:var(--text3);transition:all .12s;}
+.qdb:hover,.qdb.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.cmp-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;border:1px solid var(--border);color:var(--text3);transition:all .15s;}
+.cmp-btn:hover{border-color:var(--accent3);color:var(--accent3);}
+.cmp-btn.on{background:#fef3c7;border-color:var(--accent3);color:#92400e;}
 
-  /* ── DASHBOARD ── */
-  #dashboard{display:none;}
-  .header{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-  .header-left{display:flex;align-items:center;gap:12px;}
-  .logo{width:34px;height:34px;background:var(--amber);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:13px;font-family:var(--mono);}
-  .header-title{font-size:14px;font-weight:600;}
-  .header-sub{font-size:11px;color:var(--text3);font-family:var(--mono);}
-  .header-right{display:flex;align-items:center;gap:10px;}
-  .file-chip{background:var(--bg3);border:1px solid var(--border2);padding:5px 12px;border-radius:20px;font-size:11px;font-family:var(--mono);color:var(--text2);}
-  .btn-upload-new{background:var(--amber-glow);border:1px solid var(--amber-dim);color:var(--amber);padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all 0.15s;}
-  .btn-upload-new:hover{background:var(--amber);color:#000;}
-  .kpi-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);}
-  .kpi{background:var(--bg2);padding:14px 18px;position:relative;}
-  .kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--amber));opacity:0.7;}
-  .kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);font-family:var(--mono);margin-bottom:5px;}
-  .kpi-val{font-size:18px;font-weight:700;font-family:var(--mono);line-height:1;}
-  .kpi-sub{font-size:10px;color:var(--text3);margin-top:3px;}
-  .kpi.danger{--kpi-color:var(--red)}.kpi.warn{--kpi-color:var(--amber)}.kpi.good{--kpi-color:var(--green)}.kpi.info{--kpi-color:var(--blue)}
-  .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;overflow-x:auto;}
-  .tab{padding:13px 20px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:7px;}
-  .tab:hover{color:var(--text)}.tab.active{color:var(--amber);border-bottom-color:var(--amber);}
-  .tab-badge{background:var(--bg3);padding:2px 7px;border-radius:10px;font-size:10px;font-family:var(--mono);}
-  .tab.active .tab-badge{background:var(--amber-glow);color:var(--amber);}
-  .panel{display:none;padding:22px 28px;}.panel.active{display:block;}
-  .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-  .section-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;}
-  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
-  .fi{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 11px;border-radius:6px;font-size:12px;font-family:var(--sans);outline:none;}
-  .fi:focus{border-color:var(--amber);}
-  .fi-wide{width:200px;}.fi-sm{width:110px;}
-  .btn{padding:6px 13px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--sans);}
-  .btn:hover{background:var(--bg4);color:var(--text);}
-  .btn.primary{background:var(--amber);color:#000;border-color:var(--amber);font-weight:600;}
-  .tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;}
-  table{width:100%;border-collapse:collapse;font-size:12px;}
-  thead tr{background:var(--bg3);}
-  thead th{padding:9px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);white-space:nowrap;cursor:pointer;border-bottom:1px solid var(--border);user-select:none;font-family:var(--mono);}
-  thead th:hover{color:var(--amber);}
-  thead th.sa::after{content:' ↑';color:var(--amber);}thead th.sd::after{content:' ↓';color:var(--amber);}
-  tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
-  tbody tr:last-child{border-bottom:none;}tbody tr:hover{background:var(--bg3);}
-  td{padding:9px 13px;color:var(--text2);vertical-align:middle;white-space:nowrap;}
-  td.mono{font-family:var(--mono);font-size:11px;}
-  td.name{color:var(--text);font-weight:500;max-width:210px;overflow:hidden;text-overflow:ellipsis;}
-  .exp-row{display:none;} .exp-row.open{display:table-row;}
-  .exp-cell{padding:0!important;}
-  .exp-inner{padding:14px 18px;background:var(--bg);border-top:1px solid var(--border2);}
-  .exp-title{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:8px;font-family:var(--mono);}
-  .camp-grid{display:flex;flex-direction:column;gap:5px;}
-  .camp-hdr,.camp-row{display:grid;grid-template-columns:2fr 60px 80px 60px 90px 55px 60px 70px;gap:6px;padding:6px 10px;font-size:11px;font-family:var(--mono);align-items:center;}
-  .camp-hdr{font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);padding:2px 10px;}
-  .camp-row{border-radius:5px;border:1px solid var(--border);background:var(--bg2);}
-  .camp-row.converting{border-color:var(--green-dim);background:rgba(16,185,129,0.04);}
-  .camp-row.auto-bleed{border-color:var(--amber-dim);background:rgba(245,158,11,0.05);}
-  .camp-row.pure-waste{border-color:var(--red-dim);background:rgba(239,68,68,0.04);}
-  .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:500;font-family:var(--mono);white-space:nowrap;}
-  .b-red{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.2);}
-  .b-green{background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.2);}
-  .b-amber{background:var(--amber-glow);color:var(--amber);border:1px solid rgba(245,158,11,0.2);}
-  .b-blue{background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.2);}
-  .b-purple{background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.2);}
-  .b-grey{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
-  .is-wrap{display:flex;align-items:center;gap:7px;}
-  .is-bar{height:6px;border-radius:3px;background:var(--bg4);width:70px;flex-shrink:0;overflow:hidden;}
-  .is-fill{height:100%;border-radius:3px;}
-  .is-val{font-family:var(--mono);font-size:11px;color:var(--text2);}
-  .pager{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
-  .pager-info{font-size:11px;color:var(--text3);font-family:var(--mono);}
-  .pager-btns{display:flex;gap:5px;}
-  .pager-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:4px 11px;border-radius:5px;font-size:11px;cursor:pointer;}
-  .pager-btn:hover:not(:disabled){background:var(--bg4);color:var(--text);}
-  .pager-btn:disabled{opacity:0.3;cursor:default;}
-  .etag{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-weight:500;}
-  .etag-neg{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);}
-  .etag-bid{background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2);}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
-  .card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;}
-  .card h3{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:7px;}
-  .ins-list{display:flex;flex-direction:column;gap:7px;}
-  .ins-item{display:flex;align-items:flex-start;gap:9px;padding:9px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);}
-  .ins-icon{font-size:15px;flex-shrink:0;}
-  .ins-text{font-size:12px;color:var(--text2);line-height:1.5;}
-  .ins-text strong{color:var(--text);}
-  .bleed-split{display:flex;gap:4px;align-items:center;}
-  .bs-bar{height:7px;border-radius:2px;}
-  .spend-bar{height:4px;border-radius:2px;background:var(--bg4);width:55px;flex-shrink:0;overflow:hidden;}
-  .spend-fill{height:100%;border-radius:2px;background:var(--red);}
-  ::-webkit-scrollbar{width:5px;height:5px;}
-  ::-webkit-scrollbar-track{background:var(--bg2);}
-  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
-  @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(4,1fr)}.grid2,.grid3{grid-template-columns:1fr}}
+/* PANELS */
+.main{padding:16px 20px;}
+.panel{display:none;}.panel.active{display:block;}
 
-  /* ── ASIN CHIP + PREVIEW ── */
-  .asin-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(59,130,246,0.10);border:1px solid rgba(59,130,246,0.25);color:#60a5fa;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;cursor:pointer;position:relative;white-space:nowrap;transition:all 0.15s;text-decoration:none;vertical-align:middle;}
-  .asin-chip:hover{background:rgba(59,130,246,0.22);border-color:#3b82f6;color:#93c5fd;}
-  .asin-chip .asin-icon{font-size:9px;opacity:0.7;}
+/* KPI GRID */
+.kpi-row{display:grid;gap:14px;margin-bottom:16px;}
+.kpi-row.one{grid-template-columns:1fr;}
+.kpi-row.two{grid-template-columns:1fr 1fr;}
+.kpi-section{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);}
+.kpi-sec-hdr{padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.kpi-sec-hdr .period-tag{font-size:11px;}
+.kpi-count{color:var(--text3);font-size:11px;margin-left:auto;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
+.kpi-cell{padding:12px 14px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.kpi-cell:last-child{border-right:0;}
+.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:4px;}
+.kpi-val{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text);line-height:1;margin-bottom:3px;}
+.kpi-delta{font-size:10px;font-weight:500;color:var(--text3);}
+.kpi-delta.pos{color:var(--accent4);}.kpi-delta.neg{color:var(--danger);}
+.kpi-stripe{height:2px;margin-top:5px;border-radius:1px;}
+.ks-blue .kpi-stripe{background:var(--accent);}
+.ks-cyan .kpi-stripe{background:var(--accent2);}
+.ks-amber .kpi-stripe{background:var(--accent3);}
+.ks-green .kpi-stripe{background:var(--accent4);}
+.ks-red .kpi-stripe{background:var(--danger);}
+.ks-orange .kpi-stripe{background:var(--warn);}
 
-  /* floating preview card — rendered into #asinPreview global div */
-  #asinPreview{position:fixed;z-index:9999;pointer-events:none;opacity:0;transition:opacity 0.15s;display:none;}
-  #asinPreview.visible{opacity:1;pointer-events:auto;display:block;}
-  .asin-preview-card{
-    background:#0f1117;
-    border:1px solid #2e3245;
-    border-radius:10px;
-    box-shadow:0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(59,130,246,0.15);
-    width:280px;
-    overflow:hidden;
-    font-family:var(--sans);
-  }
-  .apc-header{
-    padding:10px 14px;
-    background:#161820;
-    border-bottom:1px solid #252836;
-    display:flex;align-items:center;gap:8px;
-  }
-  .apc-amazon-logo{font-size:11px;font-weight:700;color:#f59e0b;font-family:var(--mono);letter-spacing:0.05em;}
-  .apc-asin-val{font-family:var(--mono);font-size:11px;color:#60a5fa;font-weight:600;flex:1;}
-  .apc-close{width:18px;height:18px;border-radius:3px;background:#252836;border:none;color:#64748b;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;}
-  .apc-close:hover{background:#2e3245;color:#e2e8f0;}
-  .apc-body{padding:14px;}
-  .apc-url{font-family:var(--mono);font-size:10px;color:#475569;word-break:break-all;margin-bottom:12px;line-height:1.5;}
-  .apc-url span{color:#60a5fa;}
-  .apc-open-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px;background:#1d4ed8;border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:background 0.15s;text-decoration:none;}
-  .apc-open-btn:hover{background:#2563eb;}
-  .apc-open-btn svg{flex-shrink:0;}
-  .apc-footer{padding:8px 14px;border-top:1px solid #252836;font-size:10px;color:#475569;font-family:var(--mono);display:flex;align-items:center;gap:6px;}
-  .apc-dot{width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0;}
-</style>
+/* CHARTS */
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;box-shadow:var(--shadow);}
+.chart-hdr{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.chart-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;}
+.divider{flex:1;}
+
+/* METRIC PILLS */
+.metric-pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500;cursor:pointer;background:var(--surface2);border:1px solid var(--border);color:var(--text3);transition:all .12s;}
+.metric-pill:hover{border-color:var(--border2);color:var(--text2);}
+.metric-pill.sel-0{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8;}
+.metric-pill.sel-1{background:#d1fae5;border-color:#6ee7b7;color:#065f46;}
+.metric-pill.sel-2{background:#fef3c7;border-color:#fcd34d;color:#92400e;}
+.metric-pill.sel-3{background:#fed7aa;border-color:#fdba74;color:#9a3412;}
+.metric-pill.maxed{opacity:.4;cursor:not-allowed;}
+.m-toggle{display:inline-flex;align-items:center;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500;cursor:pointer;background:var(--surface2);border:1px solid var(--border);color:var(--text3);transition:all .12s;}
+.m-toggle.on{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8;}
+
+/* PLACEMENT TOGGLES */
+.plc-tog{display:inline-flex;align-items:center;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;background:var(--surface2);border:1px solid var(--border);color:var(--text3);transition:all .12s;}
+.plc-tog.on.tos{background:#dbeafe;border-color:#93c5fd;color:var(--tos);}
+.plc-tog.on.ros{background:#d1fae5;border-color:#6ee7b7;color:var(--ros);}
+.plc-tog.on.pp{background:#fef3c7;border-color:#fcd34d;color:var(--pp);}
+.legend-note{font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5;}
+
+/* PLACEMENT CARDS */
+.plc-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+.plc-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow);}
+.plc-badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;margin-bottom:10px;}
+.plc-badge.tos{background:#dbeafe;color:var(--tos);}
+.plc-badge.ros{background:#d1fae5;color:var(--ros);}
+.plc-badge.pp{background:#fef3c7;color:var(--pp);}
+.pm{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);}
+.pm:last-child{border-bottom:0;}
+.pm-l{color:var(--text3);font-size:11px;}.pm-v{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text);}
+
+/* SECTION HDR */
+.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.sec-title{font-size:12px;font-weight:700;color:var(--text);}
+.sec-line{flex:1;height:1px;background:var(--border);}
+
+/* COMPARE TABLES */
+.cmp-tables{display:grid;gap:14px;}
+.cmp-tables.one{grid-template-columns:1fr;}
+.cmp-tables.two{grid-template-columns:1fr 1fr;}
+
+/* TABLE CARD */
+.tbl-card{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);}
+.tbl-card.a-border{border-top:3px solid var(--a-color);}
+.tbl-card.b-border{border-top:3px solid var(--b-color);}
+.tbl-hdr{padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;}
+.tbl-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;flex:1;}
+.srch{background:#fff;border:1px solid var(--border);color:var(--text);padding:4px 9px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;width:170px;}
+.srch:focus{border-color:var(--accent);}
+.ppg{background:#fff;border:1px solid var(--border);color:var(--text2);padding:4px 7px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;}
+.tbl-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+thead{position:sticky;top:0;z-index:2;}
+th{background:var(--surface2);padding:6px 10px;text-align:right;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-size:9px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+th.left{text-align:left;}
+th:hover{color:var(--text);}
+th.sort-asc::after{content:' ↑';color:var(--accent);}
+th.sort-desc::after{content:' ↓';color:var(--accent);}
+td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);text-align:right;vertical-align:middle;}
+td.left{text-align:left;}
+tr:hover td{background:#f7f8fc;}
+tr:last-child td{border-bottom:0;}
+.asin-link{color:var(--accent2);text-decoration:none;font-family:var(--mono);font-size:10px;font-weight:500;}
+.asin-link:hover{text-decoration:underline;}
+.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;}
+.badge-tos{background:#dbeafe;color:var(--tos);}
+.badge-ros{background:#d1fae5;color:var(--ros);}
+.badge-pp{background:#fef3c7;color:var(--pp);}
+.badge-gen{background:#e2e5ef;color:#4a5470;}
+.badge-comp{background:#fee2e2;color:#b91c1c;}
+.badge-branded{background:#dbeafe;color:#1d4ed8;}
+.badge-mix{background:#ede9fe;color:#6d28d9;}
+.tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;background:var(--surface3);color:var(--text3);}
+.num{font-family:var(--mono);}
+.good{color:var(--accent4);font-weight:600;}
+.bad{color:var(--danger);font-weight:600;}
+.warn{color:var(--warn);font-weight:600;}
+.pg{display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid var(--border);background:var(--surface2);}
+.pgb{padding:3px 9px;border-radius:4px;background:#fff;border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:10px;font-family:var(--font);}
+.pgb:hover{border-color:var(--accent);color:var(--accent);}
+.pgb:disabled{opacity:.4;cursor:default;}
+.pgi{color:var(--text3);font-size:10px;flex:1;}
+
+.chart-title-sm{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding:2px 0;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--surface2);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* Campaign select dropdown with search */
+.camp-wrap{position:relative;display:inline-block;}
+.camp-sel{min-width:160px;max-width:240px;}
+/* Table-level filter bar (above each table) */
+.tbl-filter-bar{padding:8px 12px;background:#f7f8fc;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.tfl{color:var(--text3);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+.tfsep{width:1px;height:16px;background:var(--border);}
+.metric-filter{display:flex;align-items:center;gap:3px;}
+.mf-sel{background:#fff;border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;max-width:90px;}
+.mf-op{background:#fff;border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;width:50px;}
+.mf-val{background:#fff;border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;width:72px;}
+.mf-val::placeholder{color:var(--text3);}
+.mf-add{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;border:none;}
+.mf-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;background:#dbeafe;color:#1d4ed8;font-size:10px;font-weight:600;cursor:pointer;}
+.mf-tag:hover{background:#fee2e2;color:#b91c1c;}
+/* Total row */
+tr.total-row td{font-weight:700;background:#f0f4ff;border-bottom:2px solid #c7d7f7;font-family:var(--mono);font-size:11px;}
+tr.total-row td.left{color:var(--accent);font-family:var(--font);}
+
+/* Upload UI */
+
+/* Campaign modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:7000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-box{background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.15);max-width:800px;width:100%;max-height:80vh;overflow-y:auto;}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#fff;z-index:1;}
+.modal-title{font-size:14px;font-weight:700;color:var(--text);flex:1;}
+.modal-close{padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text3);}
+.modal-body{padding:16px 20px;}
+.camp-row{padding:10px 0;border-bottom:1px solid var(--border);}
+.camp-row:last-child{border-bottom:none;}
+.camp-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.camp-metrics{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;}
+.camp-metric{display:flex;flex-direction:column;gap:1px;min-width:70px;}
+.camp-metric-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);}
+.camp-metric-val{color:var(--text);font-weight:600;}
+.bleeding{color:var(--danger);font-weight:700;}
+/* KPI filter - hide placeholder when nothing active */
+.mf-active-wrap{display:none;}
+.mf-active-wrap.has-filters{display:flex;gap:4px;flex-wrap:wrap;}
+/* tbl filter bar */
+.tbl-filter-bar{padding:8px 12px;background:#f7f8fc;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.tfl{color:var(--text3);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+.tfsep{width:1px;height:16px;background:var(--border);}
+.metric-filter{display:flex;align-items:center;gap:3px;}
+.mf-sel{background:#fff;border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;max-width:90px;}
+.mf-op{background:#fff;border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;width:50px;}
+.mf-val{background:#fff;border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:5px;font-size:11px;font-family:var(--font);outline:none;width:72px;}
+.mf-val::placeholder{color:var(--text3);}
+.mf-add{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;border:none;}
+.mf-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;background:#dbeafe;color:#1d4ed8;font-size:10px;font-weight:600;cursor:pointer;}
+.mf-tag:hover{background:#fee2e2;color:#b91c1c;}
+tr.total-row td{font-weight:700;background:#f0f4ff;border-bottom:2px solid #c7d7f7;font-family:var(--mono);font-size:11px;}
+tr.total-row td.left{color:var(--accent);font-family:var(--font);}
+.camp-sel{min-width:160px;max-width:240px;}
+.chart-title-sm{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding:2px 0;}
+/* Upload replace button */
+.replace-btn{position:fixed;bottom:16px;right:16px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);box-shadow:0 4px 12px rgba(37,99,235,.3);z-index:500;}
+.replace-btn:hover{background:#1d4ed8;}
+
+/* Upload UI */
+/* UPLOAD SCREEN */
+.upload-overlay{position:fixed;inset:0;background:#f0f2f7;z-index:8000;display:flex;align-items:center;justify-content:center;overflow-y:auto;}
+.upload-center{width:100%;max-width:780px;margin:auto;padding:32px 20px;display:flex;flex-direction:column;gap:20px;}
+.upload-hero{background:#fff;border:1px solid var(--border);border-radius:14px;padding:40px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.upload-box{border:2px dashed var(--border2);border-radius:10px;padding:28px 20px;cursor:pointer;transition:border-color .2s,background .2s;background:#f7f8fc;display:block;}
+.upload-box:hover,.upload-box.drag{border-color:var(--accent);background:#f0f4ff;}
+.upload-icon{font-size:40px;margin-bottom:10px;display:block;}
+.upload-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.upload-sub{font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:0;}
+.upload-actions{margin-top:18px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.upload-btn{padding:11px 32px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .15s;}
+.upload-btn:hover{background:#1d4ed8;}
+.upload-progress{font-size:12px;color:var(--text2);min-height:18px;}
+.upload-err{color:var(--danger);font-size:12px;font-weight:500;min-height:16px;}
+/* Spec card */
+.spec-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px 28px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.spec-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.spec-badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em;}
+.spec-badge.opt{background:var(--accent4);}
+.sheet-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.sheet-row:last-child{border-bottom:0;}
+.sheet-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.sheet-info{flex:1;}
+.sheet-name{font-size:12px;font-weight:700;color:var(--text);font-family:var(--mono);}
+.sheet-name .req{color:var(--danger);font-size:10px;font-weight:600;margin-left:4px;}
+.sheet-name .opt{color:var(--accent4);font-size:10px;font-weight:600;margin-left:4px;}
+.sheet-cols{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.5;}
+.sheet-cols span{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 6px;margin:2px 2px 0 0;font-family:var(--mono);font-size:10px;}
+.col-req{border-color:var(--accent) !important;color:var(--accent) !important;background:#dbeafe !important;}
+/* Campaign modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:7000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-box{background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.15);max-width:800px;width:100%;max-height:80vh;overflow-y:auto;}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#fff;z-index:1;}
+.modal-title{font-size:14px;font-weight:700;color:var(--text);flex:1;}
+.modal-close{padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text3);}
+.modal-body{padding:16px 20px;}
+.camp-row{padding:10px 0;border-bottom:1px solid var(--border);}
+.camp-row:last-child{border-bottom:0;}
+.camp-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.camp-metrics{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;}
+.camp-metric{display:flex;flex-direction:column;gap:1px;min-width:70px;}
+.camp-metric-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);}
+.camp-metric-val{color:var(--text);font-weight:600;}
+.bleeding{color:var(--danger);font-weight:700;}
+.replace-btn{position:fixed;bottom:16px;right:16px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);box-shadow:0 4px 12px rgba(37,99,235,.3);z-index:500;}
+.replace-btn:hover{background:#1d4ed8;}</style>
 </head>
 <body>
 
-<!-- ── GLOBAL ASIN PREVIEW CARD ── -->
-<div id="asinPreview">
-  <div class="asin-preview-card">
-    <div class="apc-header">
-      <span class="apc-amazon-logo">amazon</span>
-      <span class="apc-asin-val" id="apcAsinVal">B0XXXXXXXX</span>
-      <button class="apc-close" onclick="closeAsinPreview()">✕</button>
-    </div>
-    <div class="apc-body">
-      <div class="apc-url">amazon.in/dp/<span id="apcAsinUrl">B0XXXXXXXX</span></div>
-      <a class="apc-open-btn" id="apcOpenBtn" href="#" target="_blank" rel="noopener">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Open Product Page on Amazon
-      </a>
-    </div>
-    <div class="apc-footer">
-      <span class="apc-dot"></span>
-      Opens amazon.in in a new tab
-    </div>
-  </div>
-</div>
+<!-- ═══ UPLOAD OVERLAY ═══ -->
+<div id="uploadOverlay" class="upload-overlay">
+  <div class="upload-center">
 
-<!-- ═══════════════ UPLOAD SCREEN ═══════════════ -->
-<div id="uploadScreen">
-  <div class="upload-logo">IS</div>
-  <div class="upload-title">STR Impression Share Dashboard</div>
-  <div class="upload-sub">Amazon Sponsored Products · Search Term IS Report Analyzer</div>
-
-  <div class="drop-zone" id="dropZone">
-    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this.files[0])">
-    <div class="drop-icon">📊</div>
-    <div class="drop-title">Drop your Excel file here</div>
-    <div class="drop-hint">Sponsored Products Search Term Impression Share report (.xlsx)</div>
-    <div class="drop-badge">🔒 Processed entirely in your browser — no data leaves your device</div>
-  </div>
-
-  <div class="loading-bar" id="loadingBar"><div class="loading-fill"></div></div>
-  <div class="upload-error" id="uploadError"></div>
-
-  <div class="upload-steps">
-    <div class="step"><div class="step-num">1</div><div class="step-text">Download STR IS report from Amazon Seller Central</div></div>
-    <div class="step"><div class="step-num">2</div><div class="step-text">Ensure the 4 custom columns are mapped (see below)</div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-text">Drop the .xlsx here — dashboard builds in seconds</div></div>
-  </div>
-
-  <!-- ══ PREREQUISITES ══ -->
-  <div class="prereq-wrap">
-    <div class="prereq-hdr">
-      <div class="prereq-hdr-line"></div>
-      <div class="prereq-hdr-title">📋 Raw Data Format Prerequisites</div>
-      <div class="prereq-hdr-line"></div>
-    </div>
-
-    <div class="prereq-grid">
-
-      <!-- LEFT: Data format -->
-      <div class="prereq-card">
-        <div class="prereq-card-hdr">
-          <span class="prereq-card-icon">📄</span>
-          <span class="prereq-card-title">Required Column Format</span>
-          <span class="prereq-card-sub">4 custom cols appended to Amazon raw data</span>
+    <!-- Hero drop zone -->
+    <div class="upload-hero">
+      <span class="upload-icon">📊</span>
+      <div class="upload-title">Amazon Ads Dashboard</div>
+      <div class="upload-sub">Upload your Sponsored Products report Excel file.<br>Works with any brand — drag &amp; drop or click below.</div>
+      <div class="upload-actions">
+        <div class="upload-box" id="uploadBox"
+          onclick="document.getElementById('fileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="event.preventDefault();this.classList.remove('drag');handleFileDrop(event)">
+          <div style="font-size:28px;margin-bottom:6px;">📂</div>
+          <div style="font-size:13px;font-weight:600;color:var(--accent);">Click to browse or drag &amp; drop your .xlsx file here</div>
         </div>
-        <div class="prereq-card-body">
-          <table class="fmt-table">
-            <thead>
-              <tr>
-                <th class="col-amazon">… Amazon Columns …</th>
-                <th class="col-custom col-divider-hdr">Type</th>
-                <th class="col-custom">Targeting</th>
-                <th class="col-custom">Branded/Non-Branded</th>
-                <th class="col-custom">Category</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="dim">RB/SP/Auto/Magnesium</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">Auto</td>
-                <td class="val-brand-gen">Gen</td>
-                <td class="val-cat">Magnesium</td>
-              </tr>
-              <tr>
-                <td class="dim">RB/SP/PT/Women/Multivitamin</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">PT</td>
-                <td class="val-brand-comp">Comp</td>
-                <td class="val-cat">Multivitamin</td>
-              </tr>
-              <tr>
-                <td class="dim">RB/SP/KT/Gen/Exact/HSV/Omega 3</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">KT</td>
-                <td class="val-brand-gen">Gen</td>
-                <td class="val-cat">Omega-3</td>
-              </tr>
-              <tr>
-                <td class="dim">RB/SP/KT/Branded/Mix/All</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">KT</td>
-                <td class="val-brand-branded">Branded</td>
-                <td class="val-cat">ALL</td>
-              </tr>
-              <tr>
-                <td class="dim">RB/SP/ST/Omega 3</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">ST</td>
-                <td class="val-brand-branded">Branded</td>
-                <td class="val-cat">Omega-3</td>
-              </tr>
-              <tr>
-                <td class="dim">RB/SP/CT/Omega 3</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">CT</td>
-                <td class="val-brand-comp">Comp</td>
-                <td class="val-cat">Omega-3</td>
-              </tr>
-              <tr>
-                <td class="dim">RB/SP/Auto/All</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">Auto</td>
-                <td class="val-brand-gen">Gen</td>
-                <td class="val-cat">ALL</td>
-              </tr>
-              <tr>
-                <td class="dim">RB/SP/KT/Gen/Exact/Shilajit</td>
-                <td class="val-sp col-divider">SP</td>
-                <td class="val-type">KT</td>
-                <td class="val-brand-gen">Gen</td>
-                <td class="val-cat">Shilajit</td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="margin-top:10px;font-size:10px;font-family:var(--mono);color:var(--text3);line-height:1.6">
-            <span style="color:var(--amber)">▲</span> These 4 columns must be added to the right of the raw Amazon download before uploading. The dashboard reads them to power category filters, bleed detection, and IS gap analysis.
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose Excel File (.xlsx)</button>
+        <div class="upload-progress" id="uploadProgress"></div>
+        <div class="upload-err" id="uploadErr"></div>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFile(event)">
+
+    <!-- File specification card -->
+    <div class="spec-card">
+      <div class="spec-title">
+        <span class="spec-badge">FILE FORMAT</span>
+        What your Excel file should contain
+      </div>
+
+      <div class="sheet-row">
+        <div class="sheet-icon">📋</div>
+        <div class="sheet-info">
+          <div class="sheet-name">SP STR IS Daily &nbsp;<span class="req">REQUIRED</span></div>
+          <div class="sheet-cols">
+            Tab name must include: <code>STR IS</code> or <code>Search Term</code> or <code>SP STR</code><br>
+            Required: <span class="col-req">Date</span> <span class="col-req">Customer Search Term</span>
+            <span class="col-req">Targeting</span> <span class="col-req">Campaign Name</span>
+            <span class="col-req">Impressions</span> <span class="col-req">Clicks</span>
+            <span class="col-req">Spend</span>
+            <span class="col-req">7 / 14 Day Total Orders (#)</span>
+            <span class="col-req">7 / 14 Day Total Sales</span><br>
+            Optional: <span>Portfolio name</span> <span>Match Type</span>
+            <span>Search Term Impression Rank</span> <span>Search Term Impression Share</span>
+            <span>Cost Per Click (CPC)</span> <span>Total Advertising Cost of Sales (ACOS)</span>
+            <span>Total Return on Advertising Spend (ROAS)</span> <span>7 / 14 Day Conversion Rate</span>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: Campaign Mapper -->
-      <div class="prereq-card">
-        <div class="prereq-card-hdr">
-          <span class="prereq-card-icon">🗂️</span>
-          <span class="prereq-card-title">Campaign → Column Mapper Reference</span>
-          <span class="prereq-card-sub">Use this to fill the 4 columns per campaign</span>
-        </div>
-        <div class="prereq-card-body">
-          <div class="mapper-note">
-            Your campaign name structure <strong style="color:var(--amber)">RB/SP/[Type]/[Targeting]/[Name]</strong> already encodes most values. Use the table below as your reference to map the 4 columns for every unique campaign in your report.
-          </div>
-          <table class="mapper-table">
-            <thead>
-              <tr>
-                <th class="th-camp">Campaign Pattern</th>
-                <th class="th-mapped">Type</th>
-                <th class="th-mapped">Targeting</th>
-                <th class="th-mapped">Branded/NB</th>
-                <th class="th-mapped">Category</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="camp-name">RB/SP/<strong>Auto</strong>/…</td>
-                <td><span style="color:#60a5fa;font-family:var(--mono)">SP</span></td>
-                <td><span class="badge-mt badge-mt-Auto">Auto</span></td>
-                <td><span style="color:#94a3b8;font-family:var(--mono);font-size:10px">Gen</span></td>
-                <td><span style="color:var(--text2);font-family:var(--mono);font-size:10px">From camp name</span></td>
-              </tr>
-              <tr>
-                <td class="camp-name">RB/SP/<strong>KT</strong>/Gen/…</td>
-                <td><span style="color:#60a5fa;font-family:var(--mono)">SP</span></td>
-                <td><span class="badge-mt badge-mt-KT">KT</span></td>
-                <td><span style="color:#94a3b8;font-family:var(--mono);font-size:10px">Gen</span></td>
-                <td><span style="color:var(--text2);font-family:var(--mono);font-size:10px">Last segment</span></td>
-              </tr>
-              <tr>
-                <td class="camp-name">RB/SP/<strong>KT</strong>/Branded/…</td>
-                <td><span style="color:#60a5fa;font-family:var(--mono)">SP</span></td>
-                <td><span class="badge-mt badge-mt-KT">KT</span></td>
-                <td><span style="color:#34d399;font-family:var(--mono);font-size:10px">Branded</span></td>
-                <td><span style="color:var(--text2);font-family:var(--mono);font-size:10px">Last segment</span></td>
-              </tr>
-              <tr>
-                <td class="camp-name">RB/SP/<strong>KT</strong>/Comp/…</td>
-                <td><span style="color:#60a5fa;font-family:var(--mono)">SP</span></td>
-                <td><span class="badge-mt badge-mt-KT">KT</span></td>
-                <td><span style="color:#c084fc;font-family:var(--mono);font-size:10px">Comp</span></td>
-                <td><span style="color:var(--text2);font-family:var(--mono);font-size:10px">Last segment</span></td>
-              </tr>
-              <tr>
-                <td class="camp-name">RB/SP/<strong>PT</strong>/…</td>
-                <td><span style="color:#60a5fa;font-family:var(--mono)">SP</span></td>
-                <td><span class="badge-mt badge-mt-PT">PT</span></td>
-                <td><span style="color:#c084fc;font-family:var(--mono);font-size:10px">Comp</span></td>
-                <td><span style="color:var(--text2);font-family:var(--mono);font-size:10px">Last segment</span></td>
-              </tr>
-              <tr>
-                <td class="camp-name">RB/SP/<strong>ST</strong>/…</td>
-                <td><span style="color:#60a5fa;font-family:var(--mono)">SP</span></td>
-                <td><span class="badge-mt badge-mt-ST">ST</span></td>
-                <td><span style="color:#34d399;font-family:var(--mono);font-size:10px">Branded</span></td>
-                <td><span style="color:var(--text2);font-family:var(--mono);font-size:10px">Last segment</span></td>
-              </tr>
-              <tr>
-                <td class="camp-name">RB/SP/<strong>CT</strong>/…</td>
-                <td><span style="color:#60a5fa;font-family:var(--mono)">SP</span></td>
-                <td><span class="badge-mt badge-mt-CT">CT</span></td>
-                <td><span style="color:#c084fc;font-family:var(--mono);font-size:10px">Comp</span></td>
-                <td><span style="color:var(--text2);font-family:var(--mono);font-size:10px">Last segment</span></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="prereq-footer" style="margin-top:12px">
-            <strong>Branded/Non-Branded values:</strong> Gen · Comp · Branded<br>
-            <strong>Targeting values:</strong> Auto · KT · PT · ST · CT<br>
-            <strong>Category values (examples):</strong> Omega-3 · Magnesium · Multivitamin · Creatine · Shilajit · Hydro Hype · Wonder Latte · ALL<br>
-            <strong>Type:</strong> Always <span style="color:#60a5fa">SP</span> for Sponsored Products
+      <div class="sheet-row">
+        <div class="sheet-icon">📍</div>
+        <div class="sheet-info">
+          <div class="sheet-name">SP Placement Daily &nbsp;<span class="opt">OPTIONAL</span></div>
+          <div class="sheet-cols">
+            Tab name must include: <code>Placement</code><br>
+            Required: <span class="col-req">Date</span> <span class="col-req">Campaign Name</span>
+            <span class="col-req">Placement</span> <span class="col-req">Impressions</span>
+            <span class="col-req">Clicks</span> <span class="col-req">Spend</span>
+            <span class="col-req">7 / 14 Day Total Orders (#)</span>
+            <span class="col-req">7 / 14 Day Total Sales</span><br>
+            Optional: <span>Portfolio name</span> <span>7 / 14 Day Total Units (#)</span>
+            <span>Cost Per Click (CPC)</span> <span>Total Advertising Cost of Sales (ACOS)</span><br>
+            Placement values: <span>Top of Search on Amazon</span> <span>Rest of search on Amazon</span> <span>Product pages on Amazon</span>
           </div>
         </div>
       </div>
 
-    </div><!-- end prereq-grid -->
-  </div><!-- end prereq-wrap -->
+      <div class="sheet-row">
+        <div class="sheet-icon">🗂️</div>
+        <div class="sheet-info">
+          <div class="sheet-name">Campaign Mapper &nbsp;<span class="opt">OPTIONAL</span></div>
+          <div class="sheet-cols">
+            Tab name must include: <code>Campaign Mapper</code> <code>Campaign Map</code> <code>Campaign List</code> <code>Campaigns</code><br>
+            Required column: <span class="col-req">Campaign</span> (or <code>Campaign Name</code>)<br>
+            Optional: <span>BCG</span> <span>Type</span> <span>Category</span> <span>Sub Category</span><br>
+            <em style="color:var(--text3);font-size:10px;">Used to tag campaigns with BCG group and category. Column names matched loosely.</em>
+          </div>
+        </div>
+      </div>
 
-</div>
-
-<!-- ═══════════════ DASHBOARD ═══════════════ -->
-<div id="dashboard">
-  <div class="header">
-    <div class="header-left">
-      <div class="logo">AB</div>
-      <div>
-        <div class="header-title">STR Impression Share Dashboard</div>
-        <div class="header-sub" id="headerSub">Sponsored Products · Search Term IS Report</div>
+      <div class="sheet-row">
+        <div class="sheet-icon">📦</div>
+        <div class="sheet-info">
+          <div class="sheet-name">ASIN Mapper &nbsp;<span class="opt">OPTIONAL</span></div>
+          <div class="sheet-cols">
+            Tab name must include: <code>ASIN Mapper</code> <code>ASIN Map</code> <code>ASIN List</code> <code>Product List</code><br>
+            Required column: <span class="col-req">ASIN</span> (or <code>Product ASIN</code>)<br>
+            Optional: <span>Title</span> <span>Product Title</span> <span>Name</span>
+            <span>www.amazon.in/dp/</span> <span>URL</span> <span>PDP URL</span><br>
+            <em style="color:var(--text3);font-size:10px;">ASINs in search terms starting with B0 are auto-detected and linked to amazon.in even without this sheet.</em>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="header-right">
-      <div class="file-chip" id="fileChip">📄 —</div>
-      <button class="btn-upload-new" onclick="resetToUpload()">↩ Load New Report</button>
-    </div>
-  </div>
 
-  <div class="kpi-strip" id="kpiStrip"></div>
-
-  <div class="tabs">
-    <div class="tab active" data-tab="overview">📊 Overview</div>
-    <div class="tab" data-tab="waste">🔥 Waste Finder <span class="tab-badge" id="tWaste">—</span></div>
-    <div class="tab" data-tab="isgap">📈 IS Gap Tracker <span class="tab-badge" id="tISGap">—</span></div>
-    <div class="tab" data-tab="bleed">🩸 Bleed Analyzer <span class="tab-badge" id="tBleed">—</span></div>
-    <div class="tab" data-tab="campaigns">🎯 Campaign Matrix <span class="tab-badge" id="tCamp">—</span></div>
-  </div>
-
-  <!-- OVERVIEW -->
-  <div class="panel active" id="panel-overview">
-    <div class="grid2">
-      <div class="card"><h3>🎯 Top Actionable Insights</h3><div class="ins-list" id="insightList"></div></div>
-      <div class="card"><h3>💸 Spend by Portfolio</h3><canvas id="catChart" height="220"></canvas></div>
-    </div>
-    <div class="grid3">
-      <div class="card"><h3>⚡ Budget Health</h3><canvas id="healthChart" height="180"></canvas></div>
-      <div class="card"><h3>📐 ACOS by Match Type</h3><canvas id="mtChart" height="180"></canvas></div>
-      <div class="card"><h3>🏆 Most Efficient Campaigns</h3><div id="topCamps" style="margin-top:4px"></div></div>
-    </div>
-  </div>
-
-  <!-- WASTE FINDER -->
-  <div class="panel" id="panel-waste">
-    <div class="section-hdr">
-      <div class="section-title"><span class="dot" style="background:var(--red)"></span>Waste Finder — Zero-Order Terms with Significant Spend</div>
-      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="wasteMeta"></div>
-    </div>
-    <div class="filters">
-      <input class="fi fi-wide" id="wSearch" placeholder="🔍 Search term...">
-      <select class="fi" id="wCat"><option value="">All Categories</option></select>
-      <select class="fi" id="wMT"><option value="">All Match Types</option></select>
-      <input class="fi fi-sm" id="wMinSpend" placeholder="Min spend ₹" type="number">
-      <button class="btn primary" onclick="resetF('waste')">Reset</button>
-      <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="wCount"></span>
-    </div>
-    <div class="tbl-wrap" id="wasteTbl"></div>
-    <div class="pager" id="wastePgr"></div>
-  </div>
-
-  <!-- IS GAP -->
-  <div class="panel" id="panel-isgap">
-    <div class="section-hdr">
-      <div class="section-title"><span class="dot" style="background:var(--blue)"></span>IS Gap Tracker — Converting Terms with Low Impression Share</div>
-      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="isgapMeta"></div>
-    </div>
-    <div class="filters">
-      <input class="fi fi-wide" id="gSearch" placeholder="🔍 Search term...">
-      <select class="fi" id="gCat"><option value="">All Categories</option></select>
-      <select class="fi" id="gBrand"><option value="">All Types</option></select>
-      <input class="fi fi-sm" id="gMaxIS" placeholder="Max IS %" type="number">
-      <input class="fi fi-sm" id="gMinOrders" placeholder="Min orders" type="number">
-      <button class="btn primary" onclick="resetF('isgap')">Reset</button>
-      <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="gCount"></span>
-    </div>
-    <div class="tbl-wrap" id="isgapTbl"></div>
-    <div class="pager" id="isgapPgr"></div>
-  </div>
-
-  <!-- BLEED -->
-  <div class="panel" id="panel-bleed">
-    <div class="section-hdr">
-      <div class="section-title"><span class="dot" style="background:var(--amber)"></span>Bleed Analyzer — Explicitly Targeted Terms Leaking into Auto Campaigns</div>
-      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="bleedMeta"></div>
-    </div>
-    <div class="filters">
-      <input class="fi fi-wide" id="bSearch" placeholder="🔍 Search term...">
-      <select class="fi" id="bSort">
-        <option value="autoBleedSpend">Sort: Auto Bleed ₹</option>
-        <option value="totalSpend">Sort: Total Spend</option>
-        <option value="bleedPct">Sort: Bleed %</option>
-        <option value="explicitOrders">Sort: Explicit Orders</option>
-        <option value="autoOrders">Sort: Auto Orders</option>
-        <option value="totalOrders">Sort: Total Orders</option>
-        <option value="explicitAcos">Sort: Explicit ACOS</option>
-        <option value="autoAcos">Sort: Auto ACOS</option>
-        <option value="impressionShare">Sort: IS %</option>
-      </select>
-      <button class="btn primary" onclick="resetF('bleed')">Reset</button>
-      <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="bCount"></span>
-    </div>
-    <div class="tbl-wrap" id="bleedTbl"></div>
-    <div class="pager" id="bleedPgr"></div>
-  </div>
-
-  <!-- CAMPAIGNS -->
-  <div class="panel" id="panel-campaigns">
-    <div class="section-hdr">
-      <div class="section-title"><span class="dot" style="background:var(--purple)"></span>Campaign Performance Matrix</div>
-    </div>
-    <div class="filters">
-      <input class="fi fi-wide" id="cSearch" placeholder="🔍 Campaign name...">
-      <select class="fi" id="cMT"><option value="">All Match Types</option></select>
-      <select class="fi" id="cPort"><option value="">All Portfolios</option></select>
-      <select class="fi" id="cAcos">
-        <option value="">All ACOS</option>
-        <option value="eff">Efficient (&lt;50%)</option>
-        <option value="mod">Moderate (50–100%)</option>
-        <option value="high">High (&gt;100%)</option>
-      </select>
-      <button class="btn primary" onclick="resetF('camp')">Reset</button>
-      <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="cCount"></span>
-    </div>
-    <div class="tbl-wrap" id="campTbl"></div>
-    <div class="pager" id="campPgr"></div>
   </div>
 </div>
 
+<!-- ═══ CAMPAIGN DETAIL MODAL ═══ -->
+<div id="campModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeCampModal()">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span class="modal-title" id="campModalTitle">Campaign Breakdown</span>
+      <button class="modal-close" onclick="closeCampModal()">✕ Close</button>
+    </div>
+    <div class="modal-body" id="campModalBody"></div>
+  </div>
+</div>
+
+<div id="dashWrap" style="display:none">
+
+<div id="loading" style="position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;">
+  <div class="load-ring"></div>
+  <div class="load-bar"><div class="load-fill" style="width:0"></div></div>
+  <div class="load-text" id="loadText">Processing…</div>
+</div>
+
+<header>
+  <div class="logo"><div class="logo-pill">ADS</div><span id="brandName">Amazon Ads</span></div>
+  <span style="color:var(--border2)">|</span>
+  <span style="color:var(--text3);font-size:11px">Advertising Dashboard</span>
+  <div class="hsep"></div>
+  <span id="dateDisplay"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('str')">Search Term Report</div>
+  <div class="tab" onclick="switchTab('placement')">Placement Report</div>
+</div>
+
+<!-- PERIOD A FILTER BAR -->
+<div class="fbar" id="fbarA">
+  <div class="period-tag a">Period A</div>
+  <div class="qd">
+    <div class="qdb" onclick="setQuick(7,'a',this)">7D</div>
+    <div class="qdb" onclick="setQuick(14,'a',this)">14D</div>
+    <div class="qdb" onclick="setQuick(30,'a',this)">30D</div>
+    <div class="qdb active" onclick="setQuick(0,'a',this)">All</div>
+  </div>
+  <input type="date" id="a_from" onchange="applyFilters()">
+  <span style="color:var(--text3)">→</span>
+  <input type="date" id="a_to" onchange="applyFilters()">
+  <div class="fsep"></div>
+  <div class="fg"><span class="fl">Portfolio</span>
+    <select id="a_port" onchange="applyFilters()"><option value="">All</option></select></div>
+  <div class="fg"><span class="fl">Category</span>
+    <select id="a_cat" onchange="applyFilters()"><option value="">All</option></select></div>
+  <div class="fg"><span class="fl">BCG</span>
+    <select id="a_bcg" onchange="applyFilters()">
+      <option value="">All</option><option>Gen</option><option>Comp</option><option>Branded</option><option>Mix</option>
+    </select></div>
+  <div class="fg"><span class="fl">Campaign</span>
+    <select id="a_camp" class="camp-sel" onchange="applyFilters()"><option value="">All</option></select></div>
+  <div class="fg" id="a_match_wrap"><span class="fl">Match</span>
+    <select id="a_match" onchange="applyFilters()">
+      <option value="">All</option><option value="-">Auto</option><option value="EXACT">Exact</option>
+      <option value="BROAD">Broad</option><option value="PHRASE">Phrase</option>
+    </select></div>
+  <div class="fg" id="a_plc_wrap" style="display:none"><span class="fl">Placement</span>
+    <select id="a_plc" onchange="applyFilters()">
+      <option value="">All</option><option>TOS</option><option>ROS</option><option>PP</option>
+    </select></div>
+  <div class="fsep"></div>
+  <div class="cmp-btn" id="cmpBtn" onclick="toggleCompare()">⟳ Compare periods</div>
+</div>
+
+<!-- PERIOD B FILTER BAR -->
+<div class="fbar b-bar" id="fbarB" style="display:none">
+  <div class="period-tag b">Period B</div>
+  <div class="qd">
+    <div class="qdb" onclick="setQuick(7,'b',this)">7D</div>
+    <div class="qdb" onclick="setQuick(14,'b',this)">14D</div>
+    <div class="qdb" onclick="setQuick(30,'b',this)">30D</div>
+    <div class="qdb" onclick="setQuick(0,'b',this)">All</div>
+  </div>
+  <input type="date" id="b_from" onchange="applyFilters()">
+  <span style="color:var(--text3)">→</span>
+  <input type="date" id="b_to" onchange="applyFilters()">
+  <div class="fsep"></div>
+  <div class="fg"><span class="fl">Portfolio</span>
+    <select id="b_port" onchange="applyFilters()"><option value="">All</option></select></div>
+  <div class="fg"><span class="fl">Category</span>
+    <select id="b_cat" onchange="applyFilters()"><option value="">All</option></select></div>
+  <div class="fg"><span class="fl">BCG</span>
+    <select id="b_bcg" onchange="applyFilters()">
+      <option value="">All</option><option>Gen</option><option>Comp</option><option>Branded</option><option>Mix</option>
+    </select></div>
+  <div class="fg"><span class="fl">Campaign</span>
+    <select id="b_camp" class="camp-sel" onchange="applyFilters()"><option value="">All</option></select></div>
+  <div class="fg" id="b_match_wrap"><span class="fl">Match</span>
+    <select id="b_match" onchange="applyFilters()">
+      <option value="">All</option><option value="-">Auto</option><option value="EXACT">Exact</option>
+      <option value="BROAD">Broad</option><option value="PHRASE">Phrase</option>
+    </select></div>
+  <div class="fg" id="b_plc_wrap" style="display:none"><span class="fl">Placement</span>
+    <select id="b_plc" onchange="applyFilters()">
+      <option value="">All</option><option>TOS</option><option>ROS</option><option>PP</option>
+    </select></div>
+</div>
+
+<!-- ═══ STR PANEL ═══ -->
+<div id="panel-str" class="panel active">
+  <div class="main">
+    <div class="kpi-row one" id="str-kpi-row">
+      <div class="kpi-section" id="str-kpi-a"></div>
+    </div>
+    <div class="sec-hdr">
+      <span class="sec-title">Daily Trend</span>
+      <div id="strMetricToggles" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="chart-card" id="str-chart-single">
+      <div class="chart-wrap" style="height:260px"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="sec-hdr"><span class="sec-title">Search Term Detail</span><div class="sec-line"></div></div>
+    <div class="cmp-tables one" id="str-tbl-grid">
+      <div id="str-col-a">
+        <div class="chart-card" id="str-chart-a" style="display:none;margin-bottom:12px;">
+          <div class="chart-title-sm" id="str-chart-lbl-a"></div>
+          <div class="chart-wrap" style="height:220px"><canvas id="trendChartA"></canvas></div>
+        </div>
+        <div class="tbl-card a-border" id="str-card-a">
+          <div class="tbl-hdr">
+            <span class="tbl-title" id="str-lbl-a">Search Terms</span>
+            <select class="ppg" id="str-pp-a" onchange="renderStr('a')">
+              <option value="25">25/pg</option><option value="50" selected>50/pg</option>
+              <option value="100">100/pg</option><option value="250">250/pg</option>
+            </select>
+          </div>
+          <div class="tbl-filter-bar" id="str-tfl-a"></div>
+          <div class="tbl-wrap"><table><thead><tr id="str-head-a"></tr></thead><tbody id="str-body-a"></tbody></table></div>
+          <div class="pg">
+            <span class="pgi" id="str-pgi-a"></span>
+            <button class="pgb" id="str-prev-a" onclick="strPg('a',-1)">← Prev</button>
+            <button class="pgb" id="str-next-a" onclick="strPg('a',1)">Next →</button>
+          </div>
+        </div>
+      </div>
+      <div id="str-col-b" style="display:none">
+        <div class="chart-card" id="str-chart-b" style="margin-bottom:12px;">
+          <div class="chart-title-sm" id="str-chart-lbl-b"></div>
+          <div class="chart-wrap" style="height:220px"><canvas id="trendChartB"></canvas></div>
+        </div>
+        <div class="tbl-card b-border" id="str-card-b">
+          <div class="tbl-hdr">
+            <span class="tbl-title" id="str-lbl-b">Search Terms</span>
+            <select class="ppg" id="str-pp-b" onchange="renderStr('b')">
+              <option value="25">25/pg</option><option value="50" selected>50/pg</option>
+              <option value="100">100/pg</option><option value="250">250/pg</option>
+            </select>
+          </div>
+          <div class="tbl-filter-bar" id="str-tfl-b"></div>
+          <div class="tbl-wrap"><table><thead><tr id="str-head-b"></tr></thead><tbody id="str-body-b"></tbody></table></div>
+          <div class="pg">
+            <span class="pgi" id="str-pgi-b"></span>
+            <button class="pgb" id="str-prev-b" onclick="strPg('b',-1)">← Prev</button>
+            <button class="pgb" id="str-next-b" onclick="strPg('b',1)">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PLACEMENT PANEL ═══ -->
+<div id="panel-placement" class="panel">
+  <div class="main">
+    <div class="kpi-row one" id="plc-kpi-row">
+      <div class="kpi-section" id="plc-kpi-a"></div>
+    </div>
+    <div class="sec-hdr"><span class="sec-title">Daily Performance</span><div class="sec-line"></div></div>
+    <div class="chart-card" id="plc-ctrl-bar" style="padding:10px 14px;margin-bottom:12px;">
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+        <span style="color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;">Placements:</span>
+        <div id="plcPlcToggles" style="display:flex;gap:4px;"></div>
+        <span style="color:var(--border2);margin:0 4px">|</span>
+        <span style="color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;">Metrics (max 4):</span>
+        <div id="plcMetricPills" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+      </div>
+      <div class="legend-note" id="plcLegendNote"></div>
+    </div>
+    <div class="chart-card" id="plc-chart-single" style="margin-bottom:12px;">
+      <div class="chart-wrap" style="height:280px"><canvas id="plcTrendChart"></canvas></div>
+    </div>
+    <div class="sec-hdr"><span class="sec-title">Campaign × Placement Detail</span><div class="sec-line"></div></div>
+    <div class="cmp-tables one" id="plc-tbl-grid">
+      <div id="plc-col-a">
+        <div class="chart-card" id="plc-chart-a" style="display:none;margin-bottom:12px;">
+          <div class="chart-title-sm" id="plc-chart-lbl-a"></div>
+          <div class="chart-wrap" style="height:240px"><canvas id="plcTrendChartA"></canvas></div>
+        </div>
+        <div class="tbl-card a-border" id="plc-card-a">
+          <div class="tbl-hdr">
+            <span class="tbl-title" id="plc-lbl-a">Placements</span>
+            <select class="ppg" id="plc-pp-a" onchange="renderPlc('a')">
+              <option value="25">25/pg</option><option value="50" selected>50/pg</option><option value="100">100/pg</option>
+            </select>
+          </div>
+          <div class="tbl-filter-bar" id="plc-tfl-a"></div>
+          <div class="tbl-wrap"><table><thead><tr id="plc-head-a"></tr></thead><tbody id="plc-body-a"></tbody></table></div>
+          <div class="pg">
+            <span class="pgi" id="plc-pgi-a"></span>
+            <button class="pgb" id="plc-prev-a" onclick="plcPg('a',-1)">← Prev</button>
+            <button class="pgb" id="plc-next-a" onclick="plcPg('a',1)">Next →</button>
+          </div>
+        </div>
+      </div>
+      <div id="plc-col-b" style="display:none">
+        <div class="chart-card" id="plc-chart-b" style="margin-bottom:12px;">
+          <div class="chart-title-sm" id="plc-chart-lbl-b"></div>
+          <div class="chart-wrap" style="height:240px"><canvas id="plcTrendChartB"></canvas></div>
+        </div>
+        <div class="tbl-card b-border" id="plc-card-b">
+          <div class="tbl-hdr">
+            <span class="tbl-title" id="plc-lbl-b">Placements</span>
+            <select class="ppg" id="plc-pp-b" onchange="renderPlc('b')">
+              <option value="25">25/pg</option><option value="50" selected>50/pg</option><option value="100">100/pg</option>
+            </select>
+          </div>
+          <div class="tbl-filter-bar" id="plc-tfl-b"></div>
+          <div class="tbl-wrap"><table><thead><tr id="plc-head-b"></tr></thead><tbody id="plc-body-b"></tbody></table></div>
+          <div class="pg">
+            <span class="pgi" id="plc-pgi-b"></span>
+            <button class="pgb" id="plc-prev-b" onclick="plcPg('b',-1)">← Prev</button>
+            <button class="pgb" id="plc-next-b" onclick="plcPg('b',1)">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end dashWrap -->
+<button class="replace-btn" id="replaceBtn" style="display:none" onclick="showUpload()">↑ Load New File</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════
-// ASIN DETECTION & PREVIEW
-// ═══════════════════════════════════════════════
-const ASIN_RE = /\b(B0[A-Z0-9]{8})\b/gi;
+const ASIN_MAP = {};
+let RAW_STR=[], RAW_PLC=[], ALL_CAMPS=[], BRAND_NAME='Ace Blend';
+let DA_STR=[], DA_PLC=[], DB_STR=[], DB_PLC=[];
+let GA_STR=[], GA_PLC=[], GB_STR=[], GB_PLC=[];
+let FA_STR=[], FA_PLC=[], FB_STR=[], FB_PLC=[];
+let currentTab='str', cmpMode=false;
+let pgA_str=1,pgB_str=1,pgA_plc=1,pgB_plc=1;
+let sortA_str='Spend',dirA_str=-1,sortB_str='Spend',dirB_str=-1;
+let sortA_plc='Spend',dirA_plc=-1,sortB_plc='Spend',dirB_plc=-1;
+let trendInst=null,trendInstA=null,trendInstB=null;
+let plcTrendInst=null,plcInstA=null,plcInstB=null;
+let activeTrendMetrics=['Spend'];
+let mfA_str=[],mfB_str=[],mfA_plc=[],mfB_plc=[];
+const PLC_METRICS=[
+  {key:'Spend',label:'Spend ₹',fmt:'rs'},{key:'Impressions',label:'Impr',fmt:'num'},
+  {key:'Clicks',label:'Clicks',fmt:'num'},{key:'orders',label:'Orders',fmt:'num'},
+  {key:'units',label:'Units',fmt:'num'},{key:'sales',label:'Sales ₹',fmt:'rs'},
+  {key:'acos',label:'ACoS%',fmt:'pct'},{key:'ctr',label:'CTR%',fmt:'pct'},
+  {key:'cpc',label:'CPC ₹',fmt:'rs'},{key:'roas',label:'RoAS',fmt:'x'},{key:'cr',label:'Ad CR%',fmt:'pct'},
+];
+const STR_TREND_METRICS=[
+  {key:'Spend',label:'Spend',fmt:'rs',col:'#ea580c'},{key:'Impressions',label:'Impr',fmt:'num',col:'#2563eb'},
+  {key:'Clicks',label:'Clicks',fmt:'num',col:'#0891b2'},{key:'orders',label:'Orders',fmt:'num',col:'#059669'},
+  {key:'sales',label:'Sales',fmt:'rs',col:'#16a34a'},{key:'acos',label:'ACoS',fmt:'pct',col:'#dc2626'},
+  {key:'ctr',label:'CTR',fmt:'pct',col:'#7c3aed'},{key:'cpc',label:'CPC',fmt:'rs',col:'#d97706'},
+];
+const MC=['#2563eb','#059669','#d97706','#dc2626'];
+const PLC_DASH={TOS:[],ROS:[6,3],PP:[2,4]};
+let selMets=['Spend'],selPlcs=['TOS','ROS','PP'];
+const STR_MF_FIELDS=[
+  {key:'Impressions',label:'Impressions'},{key:'Clicks',label:'Clicks'},{key:'ctr',label:'CTR%'},
+  {key:'Spend',label:'Spend'},{key:'cpc',label:'CPC'},{key:'orders',label:'Orders'},
+  {key:'sales',label:'Sales'},{key:'acos',label:'ACoS%'},{key:'roas',label:'RoAS'},
+  {key:'cvr',label:'Ad CR%'},{key:'is_share',label:'IS%'},{key:'is_rank',label:'IS Rank'},
+];
+const PLC_MF_FIELDS=[
+  {key:'Impressions',label:'Impressions'},{key:'Clicks',label:'Clicks'},{key:'ctr',label:'CTR%'},
+  {key:'Spend',label:'Spend'},{key:'cpc',label:'CPC'},{key:'orders',label:'Orders'},
+  {key:'units',label:'Units'},{key:'sales',label:'Sales'},{key:'acos',label:'ACoS%'},
+  {key:'roas',label:'RoAS'},{key:'cr',label:'Ad CR%'},
+];
 
-function isASIN(str) {
-  return /^B0[A-Z0-9]{8}$/i.test(str.trim());
+// ── FILE UPLOAD ───────────────────────────────────────────
+function showUpload(){
+  document.getElementById('uploadProgress').textContent='';
+  document.getElementById('uploadErr').textContent='';
+  document.getElementById('uploadOverlay').style.display='flex';
 }
 
-// Renders a text string — wraps any ASIN found with a clickable chip
-function renderWithASIN(text, maxLen) {
-  if (!text) return '—';
-  const str = String(text);
-  // If the entire value IS an ASIN, return the chip directly (no truncation needed)
-  if (isASIN(str)) return asinChip(str.toUpperCase());
-  // Otherwise truncate and highlight any inline ASINs
-  const display = maxLen && str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
-  return display.replace(ASIN_RE, m => asinChip(m.toUpperCase()));
+
+function handleFileDrop(event){
+  const file=event.dataTransfer.files[0];
+  if(!file)return;
+  // simulate file input selection
+  handleFileObj(file);
 }
-
-function asinChip(asin) {
-  return `<span class="asin-chip" onclick="openAsinPreview(event,'${asin}')" title="Preview ASIN on Amazon"><span class="asin-icon">🔗</span>${asin}</span>`;
+async function handleFile(event){
+  const file=event.target.files[0];if(!file)return;
+  await handleFileObj(file);
 }
-
-// Show the floating preview card near the click
-function openAsinPreview(e, asin) {
-  e.stopPropagation();
-  const url = `https://www.amazon.in/dp/${asin}`;
-  document.getElementById('apcAsinVal').textContent = asin;
-  document.getElementById('apcAsinUrl').textContent = asin;
-  document.getElementById('apcOpenBtn').href = url;
-
-  const card = document.getElementById('asinPreview');
-  card.style.display = 'block';
-  // Position near click, keep within viewport
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const cw = 290, ch = 170;
-  let left = e.clientX + 12;
-  let top  = e.clientY + 12;
-  if (left + cw > vw - 10) left = e.clientX - cw - 8;
-  if (top  + ch > vh - 10) top  = e.clientY - ch - 8;
-  card.style.left = left + 'px';
-  card.style.top  = top  + 'px';
-  requestAnimationFrame(() => card.classList.add('visible'));
-}
-
-function closeAsinPreview() {
-  const card = document.getElementById('asinPreview');
-  card.classList.remove('visible');
-  setTimeout(() => { card.style.display = 'none'; }, 150);
-}
-
-// Close when clicking anywhere else
-document.addEventListener('click', e => {
-  const card = document.getElementById('asinPreview');
-  if (card && !card.contains(e.target) && !e.target.classList.contains('asin-chip')) {
-    closeAsinPreview();
-  }
-});
-// Close on scroll
-document.addEventListener('scroll', closeAsinPreview, true);
-const dz = document.getElementById('dropZone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if(f) handleFile(f); });
-
-function handleFile(file) {
-  if (!file) return;
-  if (!file.name.match(/\.xlsx?$/i)) { showError('Please upload a .xlsx or .xls file.'); return; }
-  document.getElementById('loadingBar').style.display = 'block';
-  document.getElementById('uploadError').style.display = 'none';
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      const result = processData(rows, file.name);
-      if (!result) { showError('Could not parse the file. Make sure it is an Amazon STR Impression Share report.'); return; }
-      renderDashboard(result, file.name);
-    } catch(err) { showError('Error reading file: ' + err.message); }
-    document.getElementById('loadingBar').style.display = 'none';
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function showError(msg) {
-  const el = document.getElementById('uploadError');
-  el.textContent = '⚠ ' + msg;
-  el.style.display = 'block';
-  document.getElementById('loadingBar').style.display = 'none';
-}
-
-function resetToUpload() {
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('uploadScreen').style.display = 'flex';
-  document.getElementById('fileInput').value = '';
-}
-
-// ═══════════════════════════════════════════════
-// DATA PROCESSING
-// ═══════════════════════════════════════════════
-function processData(rows, filename) {
-  if (rows.length < 3) return null;
-
-  // Find header row (first row with 'Customer Search Term')
-  let hdrIdx = 0;
-  for (let i = 0; i < Math.min(rows.length, 5); i++) {
-    if (rows[i].some(c => String(c).includes('Customer Search Term'))) { hdrIdx = i; break; }
-  }
-  const headers = rows[hdrIdx].map(h => String(h).trim());
-
-  // Map columns — handle duplicate 'Targeting' col
-  const targIdxs = [];
-  headers.forEach((h, i) => { if (h === 'Targeting') targIdxs.push(i); });
-
-  const C = {
-    st:   headers.indexOf('Customer Search Term'),
-    rank: headers.indexOf('Search Term Impression Rank'),
-    isShare: headers.indexOf('Search Term Impression Share'),
-    kw:   targIdxs[0] ?? 6,
-    mt:   targIdxs[1] ?? 23,
-    port: headers.indexOf('Portfolio name'),
-    camp: headers.indexOf('Campaign Name'),
-    clks: headers.indexOf('Clicks'),
-    impr: headers.indexOf('Impressions'),
-    ctr:  headers.indexOf('Click-Thru Rate (CTR)'),
-    spend:headers.indexOf('Spend'),
-    cpc:  headers.indexOf('Cost Per Click (CPC)'),
-    orders: headers.indexOf('14 Day Total Orders (#)'),
-    sales:  headers.findIndex(h => h.startsWith('14 Day Total Sales')),
-    branded: headers.indexOf('Branded/Non-Branded'),
-    cat:  headers.indexOf('Category'),
-  };
-
-  if (C.st < 0 || C.camp < 0) return null;
-
-  // Parse rows
-  const raw = [];
-  for (let i = hdrIdx + 1; i < rows.length; i++) {
-    const r = rows[i];
-    const st = String(r[C.st] || '').trim();
-    if (!st) continue;
-    raw.push({
-      searchTerm: st,
-      isRank: parseInt(r[C.rank]) || 0,
-      isShare: parseFloat(r[C.isShare]) || 0,
-      kwTarget: String(r[C.kw] || '').trim(),
-      matchType: String(r[C.mt] || '').trim(),
-      portfolio: String(r[C.port] || 'No Portfolio').trim(),
-      campaign: String(r[C.camp] || '').trim(),
-      clicks: parseInt(r[C.clks]) || 0,
-      impressions: parseInt(r[C.impr]) || 0,
-      ctr: parseFloat(r[C.ctr]) || 0,
-      spend: parseFloat(r[C.spend]) || 0,
-      cpc: parseFloat(r[C.cpc]) || 0,
-      orders: parseInt(r[C.orders]) || 0,
-      sales: parseFloat(r[C.sales]) || 0,
-      branded: String(r[C.branded] || '').trim(),
-      category: String(r[C.cat] || '').trim() || 'Unknown',
-      isExplicit: String(r[C.kw] || '').trim() !== '*',
-    });
-  }
-
-  if (raw.length === 0) return null;
-
-  // ── Group by search term ──
-  const byTerm = new Map();
-  raw.forEach(r => {
-    if (!byTerm.has(r.searchTerm)) byTerm.set(r.searchTerm, []);
-    byTerm.get(r.searchTerm).push(r);
-  });
-
-  // ── Summary ──
-  const summary = {
-    totalSpend: raw.reduce((s,r)=>s+r.spend,0),
-    totalOrders: raw.reduce((s,r)=>s+r.orders,0),
-    totalSales: raw.reduce((s,r)=>s+r.sales,0),
-    totalImpressions: raw.reduce((s,r)=>s+r.impressions,0),
-    totalClicks: raw.reduce((s,r)=>s+r.clicks,0),
-    uniqueTerms: byTerm.size,
-    uniqueCampaigns: new Set(raw.map(r=>r.campaign)).size,
-    avgIS: raw.reduce((s,r)=>s+r.isShare,0)/raw.length*100,
-    dateRange: filename,
-  };
-  summary.overallAcos = summary.totalSales>0 ? (summary.totalSpend/summary.totalSales*100) : 0;
-
-  // ── Waste: 0 orders, spend > 200, group by search term ──
-  const wasteData = [];
-  const wasteSpendTotal = { val: 0 };
-  byTerm.forEach((rows, term) => {
-    const termOrders = rows.reduce((s,r)=>s+r.orders,0);
-    if (termOrders > 0) return;
-    const termSpend = rows.reduce((s,r)=>s+r.spend,0);
-    if (termSpend < 200) return;
-    wasteSpendTotal.val += termSpend;
-    const repRow = rows.reduce((a,b)=>b.isShare>a.isShare?b:a, rows[0]);
-    wasteData.push({
-      searchTerm: term,
-      impressionShare: repRow.isShare * 100,
-      isRank: repRow.isRank,
-      totalSpend: termSpend,
-      totalClicks: rows.reduce((s,r)=>s+r.clicks,0),
-      totalImpressions: rows.reduce((s,r)=>s+r.impressions,0),
-      category: repRow.category,
-      branded: repRow.branded,
-      numCampaigns: new Set(rows.map(r=>r.campaign)).size,
-      campaigns: rows.map(r=>({
-        campaign: r.campaign, matchType: r.matchType,
-        impressions: r.impressions, clicks: r.clicks,
-        spend: r.spend, orders: r.orders,
-        ctr: +(r.ctr*100).toFixed(2), cpc: r.cpc,
-        isExplicit: r.isExplicit,
-      })),
-    });
-  });
-  wasteData.sort((a,b)=>b.totalSpend-a.totalSpend);
-  summary.wasteSpend = wasteSpendTotal.val;
-
-  // ── IS Gap: orders>0, IS<50% ──
-  const isGapData = [];
-  byTerm.forEach((rows, term) => {
-    const termOrders = rows.reduce((s,r)=>s+r.orders,0);
-    if (termOrders === 0) return;
-    const maxIS = Math.max(...rows.map(r=>r.isShare));
-    if (maxIS >= 0.5) return;
-    const repRow = rows.find(r=>r.isShare===maxIS) || rows[0];
-    isGapData.push({
-      searchTerm: term,
-      impressionShare: maxIS * 100,
-      isRank: repRow.isRank,
-      totalOrders: termOrders,
-      totalSales: rows.reduce((s,r)=>s+r.sales,0),
-      totalSpend: rows.reduce((s,r)=>s+r.spend,0),
-      totalImpressions: rows.reduce((s,r)=>s+r.impressions,0),
-      numCampaigns: new Set(rows.map(r=>r.campaign)).size,
-      category: repRow.category,
-      branded: repRow.branded,
-      topCampaign: rows.reduce((a,b)=>b.orders>a.orders?b:a, rows[0]).campaign,
-    });
-  });
-  isGapData.sort((a,b)=>b.totalOrders-a.totalOrders);
-  summary.lowISConverting = isGapData.length;
-
-  // ── Bleed: has both explicit AND auto rows ──
-  const bleedData = [];
-  byTerm.forEach((rows, term) => {
-    const explicit = rows.filter(r=>r.isExplicit);
-    const auto     = rows.filter(r=>!r.isExplicit);
-    if (explicit.length===0 || auto.length===0) return;
-    const autoBleedSpend = auto.reduce((s,r)=>s+r.spend,0);
-    if (autoBleedSpend < 50) return;
-
-    const totalSpend = rows.reduce((s,r)=>s+r.spend,0);
-    const repRow = rows.reduce((a,b)=>b.isShare>a.isShare?b:a, rows[0]);
-
-    // — Explicit aggregates —
-    const expSpend   = explicit.reduce((s,r)=>s+r.spend,0);
-    const expSales   = explicit.reduce((s,r)=>s+r.sales,0);
-    const expOrders  = explicit.reduce((s,r)=>s+r.orders,0);
-    const expClicks  = explicit.reduce((s,r)=>s+r.clicks,0);
-    const expImpr    = explicit.reduce((s,r)=>s+r.impressions,0);
-
-    // — Auto aggregates —
-    const autoSales  = auto.reduce((s,r)=>s+r.sales,0);
-    const autoOrders = auto.reduce((s,r)=>s+r.orders,0);
-    const autoClicks = auto.reduce((s,r)=>s+r.clicks,0);
-    const autoImpr   = auto.reduce((s,r)=>s+r.impressions,0);
-
-    // — Combined —
-    const totalSales   = expSales + autoSales;
-    const totalOrders  = expOrders + autoOrders;
-    const totalClicks  = expClicks + autoClicks;
-    const totalImpr    = expImpr + autoImpr;
-
-    bleedData.push({
-      searchTerm: term,
-      impressionShare: repRow.isShare * 100,
-      isRank: repRow.isRank,
-      category: repRow.category,
-      branded: repRow.branded,
-
-      // explicit
-      explicitCampaigns : [...new Set(explicit.map(r=>r.campaign))],
-      explicitSpend,
-      explicitSales : expSales,
-      explicitOrders,
-      explicitClicks : expClicks,
-      explicitImpr   : expImpr,
-      explicitAcos   : expSales>0 ? +(expSpend/expSales*100).toFixed(2) : 0,
-      explicitCvr    : expClicks>0 ? +(expOrders/expClicks*100).toFixed(2) : 0,
-      explicitCtr    : expImpr>0  ? +(expClicks/expImpr*100).toFixed(2) : 0,
-      explicitCpc    : expClicks>0 ? +(expSpend/expClicks).toFixed(2) : 0,
-      explicitRoas   : expSpend>0 ? +(expSales/expSpend).toFixed(2) : 0,
-
-      // auto bleed
-      autoCampaigns  : [...new Set(auto.map(r=>r.campaign))],
-      autoBleedSpend,
-      autoSales,
-      autoOrders,
-      autoClicks,
-      autoImpr,
-      autoAcos  : autoSales>0 ? +(autoBleedSpend/autoSales*100).toFixed(2) : 0,
-      autoCvr   : autoClicks>0 ? +(autoOrders/autoClicks*100).toFixed(2) : 0,
-      autoCtr   : autoImpr>0  ? +(autoClicks/autoImpr*100).toFixed(2) : 0,
-      autoCpc   : autoClicks>0 ? +(autoBleedSpend/autoClicks).toFixed(2) : 0,
-      autoRoas  : autoBleedSpend>0 ? +(autoSales/autoBleedSpend).toFixed(2) : 0,
-
-      // totals
-      totalSpend,
-      totalSales,
-      totalOrders,
-      totalClicks,
-      totalImpr,
-      totalAcos : totalSales>0 ? +(totalSpend/totalSales*100).toFixed(2) : 0,
-      totalCvr  : totalClicks>0 ? +(totalOrders/totalClicks*100).toFixed(2) : 0,
-      totalCtr  : totalImpr>0  ? +(totalClicks/totalImpr*100).toFixed(2) : 0,
-      bleedPct  : +(autoBleedSpend/totalSpend*100).toFixed(1),
-    });
-  });
-  bleedData.sort((a,b)=>b.autoBleedSpend-a.autoBleedSpend);
-  summary.bleedTerms = bleedData.length;
-
-  // ── Campaign summary ──
-  const campMap = new Map();
-  raw.forEach(r => {
-    if (!campMap.has(r.campaign)) campMap.set(r.campaign, {campaign:r.campaign,matchType:r.matchType,portfolio:r.portfolio,spend:0,orders:0,sales:0,clicks:0,impressions:0});
-    const c = campMap.get(r.campaign);
-    c.spend+=r.spend; c.orders+=r.orders; c.sales+=r.sales; c.clicks+=r.clicks; c.impressions+=r.impressions;
-  });
-  const campData = [...campMap.values()].map(c=>({
-    ...c,
-    acos: c.sales>0 ? +(c.spend/c.sales*100).toFixed(2) : 0,
-    cvr: c.clicks>0 ? +(c.orders/c.clicks*100).toFixed(2) : 0,
-    ctr: c.impressions>0 ? +(c.clicks/c.impressions*100).toFixed(2) : 0,
-  })).sort((a,b)=>b.spend-a.spend);
-
-  return { summary, wasteData, isGapData, bleedData, campData, raw };
-}
-
-// ═══════════════════════════════════════════════
-// FORMAT HELPERS
-// ═══════════════════════════════════════════════
-const fmt = {
-  inr: v => '₹'+Math.round(v).toLocaleString('en-IN'),
-  pct: v => v.toFixed(1)+'%',
-  num: v => Math.round(v).toLocaleString('en-IN'),
-};
-
-function isBar(pct) {
-  const col = pct>60?'#10b981':pct>25?'#f59e0b':'#ef4444';
-  return `<div class="is-wrap"><div class="is-bar"><div class="is-fill" style="width:${Math.min(pct,100)}%;background:${col}"></div></div><span class="is-val">${pct.toFixed(1)}%</span></div>`;
-}
-
-function acosCol(v) {
-  const col = v===0?'#64748b':v<50?'#10b981':v<100?'#f59e0b':'#ef4444';
-  return `<span style="color:${col};font-family:var(--mono);font-size:11px;font-weight:600">${v===0?'—':v.toFixed(1)+'%'}</span>`;
-}
-
-function mtBadge(mt) {
-  const map={KT:'b-blue',PT:'b-purple',Auto:'b-amber',ST:'b-green',CT:'b-grey'};
-  return `<span class="badge ${map[mt]||'b-grey'}">${mt}</span>`;
-}
-
-function brandBadge(b) {
-  const map={Branded:'b-green',Comp:'b-purple',Gen:'b-grey',Branded_Comp:'b-blue'};
-  return `<span class="badge ${map[b]||'b-grey'}">${b||'—'}</span>`;
-}
-
-// ═══════════════════════════════════════════════
-// PAGER ENGINE
-// ═══════════════════════════════════════════════
-const _pages = {};
-
-function renderTable({ id, pgId, countId, data, cols, expandFn, pageSize=15, sortKey, sortDir=-1 }) {
-  _pages[id] = _pages[id] || { page:0, data, filtered:data, sortKey, sortDir };
-  const state = _pages[id];
-
-  function render() {
-    const s=state.page*pageSize, e=s+pageSize;
-    const pd = state.filtered.slice(s, e);
-    if(countId) document.getElementById(countId).textContent = `${state.filtered.length} items`;
-
-    let h=`<table><thead><tr>${cols.map((c,i)=>`<th data-i="${i}" class="${state.sortKey===c.key?(state.sortDir===1?'sa':'sd'):''}">${c.label}</th>`).join('')}</tr></thead><tbody>`;
-    pd.forEach((row, ri) => {
-      const key = s+ri;
-      h += `<tr onclick="toggleExp('${id}','${key}')">` + cols.map(c=>`<td class="${c.cls||''}">${c.render(row)}</td>`).join('') + '</tr>';
-      if(expandFn) h += `<tr class="exp-row" id="xr-${id}-${key}"><td colspan="${cols.length}" class="exp-cell"><div class="exp-inner">${expandFn(row)}</div></td></tr>`;
-    });
-    h += '</tbody></table>';
-    document.getElementById(id).innerHTML = h;
-
-    document.querySelectorAll(`#${id} thead th`).forEach(th => {
-      th.addEventListener('click', () => {
-        const c = cols[parseInt(th.dataset.i)];
-        if(!c.key) return;
-        if(state.sortKey===c.key) state.sortDir*=-1; else {state.sortKey=c.key;state.sortDir=-1;}
-        state.filtered.sort((a,b)=>(a[c.key]-b[c.key])*state.sortDir);
-        state.page=0; render();
-      });
-    });
-
-    const tp = Math.ceil(state.filtered.length/pageSize);
-    document.getElementById(pgId).innerHTML = `
-      <span class="pager-info">Page ${state.page+1} of ${Math.max(1,tp)} · ${state.filtered.length} records</span>
-      <div class="pager-btns">
-        <button class="pager-btn" onclick="goPage('${id}','${pgId}',${state.page-1})" ${state.page===0?'disabled':''}>← Prev</button>
-        <button class="pager-btn" onclick="goPage('${id}','${pgId}',${state.page+1})" ${state.page>=tp-1?'disabled':''}>Next →</button>
-      </div>`;
-  }
-
-  state.render = render;
-  render();
-}
-
-function goPage(id, pgId, p) { _pages[id].page=p; _pages[id].render(); }
-function toggleExp(id, key) {
-  const row=document.getElementById(`xr-${id}-${key}`);
-  if(!row) return;
-  const wasOpen=row.classList.contains('open');
-  document.querySelectorAll(`#${id} .exp-row.open`).forEach(r=>r.classList.remove('open'));
-  if(!wasOpen) row.classList.add('open');
-}
-
-function filterTable(id, fn) {
-  const state = _pages[id];
-  state.filtered = state.data.filter(fn);
-  state.page = 0;
-  state.render();
-}
-
-// ═══════════════════════════════════════════════
-// RENDER DASHBOARD
-// ═══════════════════════════════════════════════
-let G = null; // global data
-
-function renderDashboard(result, filename) {
-  G = result;
-  document.getElementById('uploadScreen').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'block';
-  document.getElementById('fileChip').textContent = '📄 ' + filename;
-  document.getElementById('headerSub').textContent = 'Sponsored Products · STR IS Report · ' + filename.replace(/\.xlsx?/i,'');
-
-  buildKPIs();
-  buildWasteTab();
-  buildISGapTab();
-  buildBleedTab();
-  buildCampTab();
-  buildOverview();
-
-  // Tabs
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
-    });
-  });
-}
-
-// ── KPIs ──
-function buildKPIs() {
-  const s = G.summary;
-  const kpis = [
-    {label:'Total Spend',val:fmt.inr(s.totalSpend),sub:'All campaigns',cls:'warn'},
-    {label:'Total Orders',val:fmt.num(s.totalOrders),sub:'14D attributed',cls:'good'},
-    {label:'Total Sales',val:fmt.inr(s.totalSales),sub:'14D attributed',cls:'good'},
-    {label:'Overall ACOS',val:fmt.pct(s.overallAcos),sub:s.overallAcos>100?'⚠ Above breakeven':'',cls:'danger'},
-    {label:'Avg Imp. Share',val:fmt.pct(s.avgIS),sub:`${s.uniqueTerms.toLocaleString()} terms`,cls:'info'},
-    {label:'Wasted Spend',val:fmt.inr(s.wasteSpend),sub:`${((s.wasteSpend/s.totalSpend)*100).toFixed(0)}% of budget`,cls:'danger'},
-    {label:'Bleed Terms',val:s.bleedTerms,sub:'Explicit→Auto leaks',cls:'warn'},
-  ];
-  document.getElementById('kpiStrip').innerHTML = kpis.map(k=>
-    `<div class="kpi ${k.cls}"><div class="kpi-label">${k.label}</div><div class="kpi-val">${k.val}</div><div class="kpi-sub">${k.sub}</div></div>`
-  ).join('');
-  document.getElementById('tWaste').textContent = G.wasteData.length+'+';
-  document.getElementById('tISGap').textContent = G.isGapData.length+'+';
-  document.getElementById('tBleed').textContent = G.bleedData.length;
-  document.getElementById('tCamp').textContent = G.campData.length;
-}
-
-// ── WASTE TAB ──
-function buildWasteTab() {
-  const data = G.wasteData;
-  document.getElementById('wasteMeta').textContent = `Total wasted ₹ (shown): ${fmt.inr(G.summary.wasteSpend)} | ${data.length} terms with ₹200+ spend & 0 orders`;
-
-  const cats = [...new Set(data.map(d=>d.category))].sort();
-  const mts = [...new Set(data.flatMap(d=>d.campaigns.map(c=>c.matchType)))].sort();
-  const wCat = document.getElementById('wCat');
-  const wMT = document.getElementById('wMT');
-  wCat.innerHTML = '<option value="">All Categories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-  wMT.innerHTML = '<option value="">All Match Types</option>' + mts.map(m=>`<option value="${m}">${m}</option>`).join('');
-
-  _pages['wasteTbl'] = null;
-  renderTable({
-    id:'wasteTbl', pgId:'wastePgr', countId:'wCount',
-    data, pageSize:15, sortKey:'totalSpend', sortDir:-1,
-    cols:[
-      {label:'#', render:(_,i)=>'', cls:'mono'},
-      {label:'Search Term', key:null, render:d=>`<span style="max-width:200px;display:block;overflow:hidden;text-overflow:ellipsis">${renderWithASIN(d.searchTerm, 28)}</span>`, cls:'name'},
-      {label:'Category', render:d=>`<span class="badge b-grey">${d.category}</span>`},
-      {label:'Wasted Spend ↓', key:'totalSpend', render:d=>`<span style="color:#f87171;font-weight:600;font-family:var(--mono);font-size:11px">${fmt.inr(d.totalSpend)}</span>`},
-      {label:'Clicks', key:'totalClicks', render:d=>d.totalClicks, cls:'mono'},
-      {label:'Impressions', key:'totalImpressions', render:d=>fmt.num(d.totalImpressions), cls:'mono'},
-      {label:'IS %', key:'impressionShare', render:d=>isBar(d.impressionShare)},
-      {label:'Rank', key:'isRank', render:d=>`<span style="color:var(--text3);font-family:var(--mono)">#${d.isRank}</span>`},
-      {label:'Campaigns', key:'numCampaigns', render:d=>`<span style="color:${d.numCampaigns>2?'#f59e0b':'var(--text3)'};font-family:var(--mono)">${d.numCampaigns}</span>`},
-      {label:'Type', render:d=>brandBadge(d.branded)},
-      {label:'Action', render:d=>`<span class="etag etag-neg">✗ Negative</span>`},
-      {label:'▼', render:d=>`<span style="color:var(--text3);font-size:12px">+</span>`},
-    ],
-    expandFn: row => {
-      let h = `<div class="exp-title">⚡ All Campaigns Triggering "${renderWithASIN(row.searchTerm)}"</div>`;
-      h += `<div class="camp-hdr"><span>Campaign</span><span>Type</span><span>Impr.</span><span>Clicks</span><span>Spend ₹</span><span>Orders</span><span>CTR%</span><span>CPC ₹</span></div>`;
-      h += `<div class="camp-grid">`;
-      row.campaigns.forEach(c => {
-        const cls = c.orders>0?'converting':!c.isExplicit?'auto-bleed':c.spend>300&&c.orders===0?'pure-waste':'';
-        h += `<div class="camp-row ${cls}">
-          <span style="overflow:hidden;text-overflow:ellipsis;color:${!c.isExplicit?'#f59e0b':'var(--text2)'}">
-            ${!c.isExplicit?'⚡ ':''}<span title="${c.campaign}">${renderWithASIN(c.campaign, 40)}</span>
-            ${!c.isExplicit?'<span style="font-size:9px;color:#f59e0b;margin-left:4px">[AUTO BLEED]</span>':''}
-          </span>
-          ${mtBadge(c.matchType)}
-          <span>${fmt.num(c.impressions)}</span>
-          <span>${c.clicks}</span>
-          <span style="color:${c.orders===0&&c.spend>200?'#f87171':'var(--text2)'}">${fmt.inr(c.spend)}</span>
-          <span style="color:${c.orders>0?'#34d399':'var(--text3)'}">${c.orders}</span>
-          <span>${c.ctr}%</span>
-          <span>${fmt.inr(c.cpc)}</span>
-        </div>`;
-      });
-      h += `</div>`;
-      const auto = row.campaigns.filter(c=>!c.isExplicit);
-      if(auto.length>0) {
-        const bs = auto.reduce((s,c)=>s+c.spend,0);
-        h += `<div style="margin-top:8px;padding:8px 11px;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:5px;font-size:11px;font-family:var(--mono);color:var(--amber)">⚡ AUTO BLEED: ${fmt.inr(bs)} leaking across ${auto.length} auto campaign(s) → Add as NEGATIVE EXACT in: ${auto.map(c=>c.campaign.replace('RB/SP/Auto/','Auto/')).join(', ')}</div>`;
+async function handleFileObj(file){
+  const prog=document.getElementById('uploadProgress');
+  const err=document.getElementById('uploadErr');
+  prog.textContent='Reading file…';err.textContent='';
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'arraybuffer',cellDates:true});
+    prog.textContent='Parsing sheets…';
+    // Find sheets by name pattern
+    const findSheet=patterns=>{
+      for(const sh of wb.SheetNames){
+        const sl=sh.toLowerCase();
+        if(patterns.some(p=>sl.includes(p)))return wb.Sheets[sh];
       }
-      return h;
+      return null;
+    };
+    const strSheet=findSheet(['str is','str_is','search term','sp str','str report','searchterm']);
+    const plcSheet=findSheet(['placement','sp placement','placement report']);
+    const asinSheet=findSheet(['asin mapper','asin_mapper','asin map','asin list','product list']);
+    const campSheet=findSheet(['campaign mapper','campaign_mapper','campaign map','campaign list','campaigns']);
+    // STR is required; Placement is optional
+    if(!strSheet)throw new Error('Could not find STR IS sheet. See required sheet names below.');
+    prog.textContent='Processing STR data…';
+    const strRaw=XLSX.utils.sheet_to_json(strSheet,{defval:0});
+    const plcRaw=plcSheet?XLSX.utils.sheet_to_json(plcSheet,{defval:0}):[];
+    // Parse ASIN mapper
+    let asinMapLocal={};
+    if(asinSheet){
+      const asinRows=XLSX.utils.sheet_to_json(asinSheet,{defval:''});
+      asinRows.forEach(r=>{
+        const asin=(r['ASIN']||r['asin']||r['Asin']||r['Product ASIN']||'').toString().trim().toUpperCase();
+        const title=r['Title']||r['title']||r['Product Title']||r['Name']||'';
+        const url=r['www.amazon.in/dp/']||r['URL']||r['url']||r['PDP URL']||(asin?'www.amazon.in/dp/'+asin:'');
+        if(asin)asinMapLocal[asin]={title,url};
+      });
     }
-  });
+    // Parse campaign mapper
+    let campMapLocal={};
+    if(campSheet){
+      const campRows=XLSX.utils.sheet_to_json(campSheet,{defval:''});
+      campRows.forEach(r=>{
+        // Flexible column matching for campaign mapper
+        const name=r['Campaign']||r['Campaign Name']||r['campaign']||r['campaign_name']||'';
+        const bcg=r['BCG']||r['bcg']||r['BCG Group']||r['Type']||r['type']||'';
+        const cat=r['Category']||r['category']||r['Sub Category']||r['sub_category']||'';
+        if(name)campMapLocal[name]={bcg,category:cat};
+      });
+    }
+    prog.textContent='Building records…';
 
-  function applyWasteFilter() {
-    const q=document.getElementById('wSearch').value.toLowerCase();
-    const cat=document.getElementById('wCat').value;
-    const mt=document.getElementById('wMT').value;
-    const ms=parseFloat(document.getElementById('wMinSpend').value)||0;
-    filterTable('wasteTbl', d=>
-      (!q||d.searchTerm.toLowerCase().includes(q))&&
-      (!cat||d.category===cat)&&
-      (!mt||d.campaigns.some(c=>c.matchType===mt))&&
-      d.totalSpend>=ms
-    );
-  }
-  ['wSearch','wMinSpend'].forEach(id=>document.getElementById(id).addEventListener('input',applyWasteFilter));
-  ['wCat','wMT'].forEach(id=>document.getElementById(id).addEventListener('change',applyWasteFilter));
-}
-
-// ── IS GAP TAB ──
-function buildISGapTab() {
-  const data = G.isGapData;
-  const oppSales = data.reduce((s,d)=>s+d.totalSales,0);
-  document.getElementById('isgapMeta').textContent = `${data.length} converting terms with IS <50% | ${fmt.inr(oppSales)} in sales at risk from lost impressions`;
-
-  const cats=[...new Set(data.map(d=>d.category))].sort();
-  const brands=[...new Set(data.map(d=>d.branded))].sort();
-  document.getElementById('gCat').innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-  document.getElementById('gBrand').innerHTML='<option value="">All Types</option>'+brands.map(b=>`<option value="${b}">${b}</option>`).join('');
-
-  _pages['isgapTbl'] = null;
-  renderTable({
-    id:'isgapTbl', pgId:'isgapPgr', countId:'gCount',
-    data, pageSize:15, sortKey:'totalOrders', sortDir:-1,
-    cols:[
-      {label:'#', render:()=>'', cls:'mono'},
-      {label:'Search Term', render:d=>`<span style="max-width:200px;display:block;overflow:hidden;text-overflow:ellipsis">${renderWithASIN(d.searchTerm, 28)}</span>`, cls:'name'},
-      {label:'Category', render:d=>`<span class="badge b-grey">${d.category}</span>`},
-      {label:'Type', render:d=>brandBadge(d.branded)},
-      {label:'IS % ↑', key:'impressionShare', render:d=>isBar(d.impressionShare)},
-      {label:'Rank', key:'isRank', render:d=>`<span style="color:var(--text3);font-family:var(--mono)">#${d.isRank}</span>`},
-      {label:'Orders', key:'totalOrders', render:d=>`<span style="color:#34d399;font-weight:600;font-family:var(--mono)">${d.totalOrders}</span>`},
-      {label:'Sales', key:'totalSales', render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.totalSales)}</span>`},
-      {label:'Spend', key:'totalSpend', render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.totalSpend)}</span>`},
-      {label:'ACOS', key:'totalSpend', render:d=>acosCol(d.totalSales>0?+(d.totalSpend/d.totalSales*100):0)},
-      {label:'Camps', key:'numCampaigns', render:d=>`<span style="color:${d.numCampaigns>4?'#f59e0b':'var(--text3)'};font-family:var(--mono)">${d.numCampaigns}</span>`},
-      {label:'Action', render:()=>`<span class="etag etag-bid">↑ Raise Bid</span>`},
-    ],
-  });
-
-  function applyISFilter(){
-    const q=document.getElementById('gSearch').value.toLowerCase();
-    const cat=document.getElementById('gCat').value;
-    const brand=document.getElementById('gBrand').value;
-    const maxIS=parseFloat(document.getElementById('gMaxIS').value)||100;
-    const minO=parseInt(document.getElementById('gMinOrders').value)||0;
-    filterTable('isgapTbl',d=>(!q||d.searchTerm.toLowerCase().includes(q))&&(!cat||d.category===cat)&&(!brand||d.branded===brand)&&d.impressionShare<=maxIS&&d.totalOrders>=minO);
-  }
-  ['gSearch','gMaxIS','gMinOrders'].forEach(id=>document.getElementById(id).addEventListener('input',applyISFilter));
-  ['gCat','gBrand'].forEach(id=>document.getElementById(id).addEventListener('change',applyISFilter));
-}
-
-// ── BLEED TAB ──
-function buildBleedTab() {
-  const data = G.bleedData;
-  const totalAutoBleed = data.reduce((s,d)=>s+d.autoBleedSpend,0);
-  const totalBleedOrders = data.reduce((s,d)=>s+d.autoOrders,0);
-  document.getElementById('bleedMeta').textContent =
-    `${fmt.inr(totalAutoBleed)} bleeding into auto campaigns · ${totalBleedOrders} auto orders · ${data.length} search terms affected`;
-
-  // helper: mini metric pill
-  const mp = (label, val, col='var(--text2)') =>
-    `<div style="display:flex;flex-direction:column;gap:2px;min-width:70px">
-       <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-family:var(--mono)">${label}</span>
-       <span style="font-size:12px;font-weight:600;font-family:var(--mono);color:${col}">${val}</span>
-     </div>`;
-
-  const acosColor = v => v===0?'var(--text3)':v<60?'#10b981':v<100?'#f59e0b':'#ef4444';
-  const cvrColor  = v => v===0?'var(--text3)':v>15?'#10b981':v>6?'#f59e0b':'#ef4444';
-
-  _pages['bleedTbl'] = null;
-  renderTable({
-    id:'bleedTbl', pgId:'bleedPgr', countId:'bCount',
-    data, pageSize:12, sortKey:'autoBleedSpend', sortDir:-1,
-    cols:[
-      {label:'#',        cls:'mono',  render:()=>''},
-      {label:'Search Term', render:d=>`<div style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${renderWithASIN(d.searchTerm,28)}</div><div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)">${d.category||''} · ${d.branded||''}</div>`, cls:'name'},
-      {label:'IS %',     key:'impressionShare', render:d=>isBar(d.impressionShare)},
-
-      // ── EXPLICIT block ──
-      {label:'EXP. CAMPS',  render:d=>`<span style="color:#60a5fa;font-family:var(--mono);font-weight:600">${d.explicitCampaigns.length}</span>`},
-      {label:'EXP. SPEND',  key:'explicitSpend',  render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.explicitSpend)}</span>`},
-      {label:'EXP. SALES',  key:'explicitSales',  render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.explicitSales)}</span>`},
-      {label:'EXP. ORDERS', key:'explicitOrders', render:d=>`<span style="color:#34d399;font-weight:600;font-family:var(--mono)">${d.explicitOrders}</span>`},
-      {label:'EXP. ACOS',   key:'explicitAcos',   render:d=>acosCol(d.explicitAcos)},
-      {label:'EXP. CVR%',   key:'explicitCvr',    render:d=>`<span style="color:${cvrColor(d.explicitCvr)};font-family:var(--mono);font-size:11px">${d.explicitCvr.toFixed(1)}%</span>`},
-      {label:'EXP. CTR%',   key:'explicitCtr',    render:d=>`<span style="font-family:var(--mono);font-size:11px;color:var(--text2)">${d.explicitCtr.toFixed(2)}%</span>`},
-      {label:'EXP. CPC',    key:'explicitCpc',    render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.explicitCpc)}</span>`},
-
-      // ── AUTO BLEED block ──
-      {label:'AUTO CAMPS',  render:d=>`<span style="color:#f59e0b;font-family:var(--mono);font-weight:600">${d.autoCampaigns.length}</span>`},
-      {label:'AUTO SPEND ⚡', key:'autoBleedSpend', render:d=>`<span style="color:#f59e0b;font-weight:700;font-family:var(--mono)">${fmt.inr(d.autoBleedSpend)}</span>`},
-      {label:'AUTO SALES',  key:'autoSales',   render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.autoSales)}</span>`},
-      {label:'AUTO ORDERS', key:'autoOrders',  render:d=>`<span style="color:${d.autoOrders>0?'#a78bfa':'var(--text3)'};font-weight:600;font-family:var(--mono)">${d.autoOrders}</span>`},
-      {label:'AUTO ACOS',   key:'autoAcos',    render:d=>acosCol(d.autoAcos)},
-      {label:'AUTO CVR%',   key:'autoCvr',     render:d=>`<span style="color:${cvrColor(d.autoCvr)};font-family:var(--mono);font-size:11px">${d.autoCvr.toFixed(1)}%</span>`},
-      {label:'AUTO CTR%',   key:'autoCtr',     render:d=>`<span style="font-family:var(--mono);font-size:11px;color:var(--text2)">${d.autoCtr.toFixed(2)}%</span>`},
-      {label:'AUTO CPC',    key:'autoCpc',     render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.autoCpc)}</span>`},
-
-      // ── COMBINED ──
-      {label:'TOTAL SPEND', key:'totalSpend',  render:d=>`<span style="font-family:var(--mono);font-size:11px;font-weight:600">${fmt.inr(d.totalSpend)}</span>`},
-      {label:'TOTAL SALES', key:'totalSales',  render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.totalSales)}</span>`},
-      {label:'TOTAL ACOS',  key:'totalAcos',   render:d=>acosCol(d.totalAcos)},
-      {label:'BLEED %',     key:'bleedPct',    render:d=>{
-        const p=d.bleedPct;
-        const col=p>50?'#ef4444':p>25?'#f59e0b':'#10b981';
-        return `<div style="display:flex;align-items:center;gap:6px">
-          <div style="width:50px;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
-            <div style="width:${Math.min(p,100)}%;height:100%;background:${col};border-radius:3px"></div>
-          </div>
-          <span style="font-family:var(--mono);font-size:11px;color:${col};font-weight:600">${p}%</span>
-        </div>`;
-      }},
-      {label:'ACTION',  render:()=>`<span class="etag etag-neg">✗ Neg in Auto</span>`},
-      {label:'▼',       render:()=>`<span style="color:var(--text3);font-size:12px">+</span>`},
-    ],
-
-    expandFn: row => {
-      // Metric comparison panel
-      const metricRow = (label, expVal, autoVal, fmt_fn, better='lower') => {
-        const ev = fmt_fn(expVal), av = fmt_fn(autoVal);
-        let expMark='', autoMark='';
-        if (expVal!==0 && autoVal!==0) {
-          const expBetter = better==='lower' ? expVal<=autoVal : expVal>=autoVal;
-          expMark  = expBetter  ? `<span style="color:#10b981;font-size:9px;margin-left:3px">▲</span>` : `<span style="color:#ef4444;font-size:9px;margin-left:3px">▼</span>`;
-          autoMark = !expBetter ? `<span style="color:#10b981;font-size:9px;margin-left:3px">▲</span>` : `<span style="color:#ef4444;font-size:9px;margin-left:3px">▼</span>`;
+    // Normalise STR
+    // ── Fuzzy column finder: finds column regardless of "7 Day"/"14 Day" prefix,
+// trailing spaces, "Thru" vs "Through", or other Amazon naming variations.
+// Strip ₹ sign, commas, spaces before parsing — handles Indian formatted numbers
+    const cleanNum=(v,isInt=false)=>{
+      if(v===null||v===undefined||v==='')return 0;
+      if(typeof v==='number')return isInt?Math.round(v):v;
+      const s=String(v).replace(/[₹,\s]/g,'').trim();
+      if(s==='')return 0;
+      const n=isInt?parseInt(s):parseFloat(s);
+      return isNaN(n)?0:n;
+    };
+    const colFind=(row,keywords,isInt=false)=>{
+      const keys=Object.keys(row);
+      for(const kw of keywords){
+        const kl=kw.toLowerCase().trim();
+        const exact=keys.find(k=>k.trim().toLowerCase()===kl);
+        if(exact!==undefined&&row[exact]!==''&&row[exact]!==null){
+          return cleanNum(row[exact],isInt);
         }
-        return `<tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 10px;font-size:10px;color:var(--text3);font-family:var(--mono);white-space:nowrap">${label}</td>
-          <td style="padding:5px 14px;font-size:11px;font-family:var(--mono);color:#93c5fd;text-align:right">${ev}${expMark}</td>
-          <td style="padding:5px 14px;font-size:11px;font-family:var(--mono);color:#fcd34d;text-align:right">${av}${autoMark}</td>
-          <td style="padding:5px 14px;font-size:11px;font-family:var(--mono);color:var(--text2);text-align:right">${fmt_fn(expVal+autoVal)}</td>
-        </tr>`;
+      }
+      for(const kw of keywords){
+        const parts=kw.toLowerCase().split('|').map(s=>s.trim()).filter(Boolean);
+        const match=keys.find(k=>parts.every(p=>k.toLowerCase().includes(p)));
+        if(match!==undefined&&row[match]!==''&&row[match]!==null){
+          return cleanNum(row[match],isInt);
+        }
+      }
+      return 0;
+    };
+    const findSalesCol=row=>{
+      const keys=Object.keys(row);
+      // Try specific patterns first
+      const pref=['total sales','day total sales'];
+      for(const p of pref){const k=keys.find(k=>k.toLowerCase().includes(p));if(k&&row[k]!==undefined)return cleanNum(row[k],false);}
+      // Fallback: any col with 'sales' but not acos/cost
+      const k=keys.find(k=>{const kl=k.toLowerCase();return kl.includes('sales')&&!kl.includes('acos')&&!kl.includes('cost');});
+      return k?cleanNum(row[k],false):0;
+    };
+    const findOrdersCol=row=>{
+      const keys=Object.keys(row);
+      // Priority list — most specific first, then plain "Orders"
+      const pref=['total orders (#)','total orders','day total orders','orders (#)','orders'];
+      for(const p of pref){
+        const k=keys.find(k=>k.trim().toLowerCase()===p||k.trim().toLowerCase().includes(p));
+        if(k&&row[k]!==undefined&&row[k]!=='')return cleanNum(row[k],true);
+      }
+      return 0;
+    };
+    const strNorm=strRaw.map(r=>{
+      const targeting=r['Targeting']||r['targeting']||'';
+      const asinM=targeting.match(/asin="([A-Z0-9]{10})"/);
+      const td=asinM?asinM[1]:targeting;
+      const dateRaw=r['Date']||'';
+      let dateStr='';
+      if(dateRaw instanceof Date)dateStr=dateRaw.toISOString().slice(0,10);
+      else if(typeof dateRaw==='string')dateStr=dateRaw.slice(0,10);
+      else if(typeof dateRaw==='number'){const d=XLSX.SSF.parse_date_code(dateRaw);dateStr=`${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;}
+      const camp=r['Campaign Name']||r['campaign']||'';
+      const cm=campMapLocal[camp]||{};
+      return{
+        Date:dateStr,
+        portfolio:r['Portfolio name']||r['portfolio']||'',
+        campaign:camp,
+        ad_group:r['Ad Group Name']||'',
+        match_type:r['Match Type']||r['match_type']||'-',
+        search_term:r['Customer Search Term']||r['search_term']||td,
+        Targeting:targeting,
+        targeting_display:td,
+        is_rank:colFind(r,['search term impression rank']),
+        is_share:colFind(r,['search term impression share']),
+        Clicks:colFind(r,['clicks'],true),
+        Impressions:colFind(r,['impressions'],true),
+        Spend:colFind(r,['spend']),
+        ctr_raw:colFind(r,['click-thru rate','click-through rate','ctr']),
+        cpc:colFind(r,['cost per click']),
+        orders:findOrdersCol(r),
+        sales:findSalesCol(r),
+        acos:colFind(r,['advertising cost of sales','acos']),
+        roas:colFind(r,['return on advertising spend','roas']),
+        cvr:colFind(r,['conversion rate']),
+        bcg:cm.bcg||'',
+        category:cm.category||'',
       };
+    }).filter(r=>r.Date);
+    // Normalise PLC
+    const plcNorm=plcRaw.map(r=>{
+      const dateRaw=r['Date']||'';
+      let dateStr='';
+      if(dateRaw instanceof Date)dateStr=dateRaw.toISOString().slice(0,10);
+      else if(typeof dateRaw==='string')dateStr=dateRaw.slice(0,10);
+      else if(typeof dateRaw==='number'){const d=XLSX.SSF.parse_date_code(dateRaw);dateStr=`${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;}
+      const plcRaw2=r['Placement']||'';
+      const plcMap={'Top of Search on Amazon':'TOS','Rest of search on Amazon':'ROS','Product pages on Amazon':'PP'};
+      const camp=r['Campaign Name']||r['campaign']||'';
+      const cm=campMapLocal[camp]||{};
+      return{
+        Date:dateStr,
+        portfolio:r['Portfolio name']||r['portfolio']||'',
+        campaign:camp,
+        Placement:plcRaw2,
+        placement_short:plcMap[plcRaw2]||plcRaw2,
+        Impressions:cleanNum(r['Impressions'])||0,
+        Clicks:cleanNum(r['Clicks'])||0,
+        Spend:cleanNum(r['Spend'])||0,
+        cpc:cleanNum(r['Cost Per Click (CPC)']||r['cpc'])||0,
+        orders:findOrdersCol(r),
+        units:(()=>{const keys=Object.keys(r);const pref=['total units (#)','total units','day total units'];for(const p of pref){const k=keys.find(k=>k.toLowerCase().includes(p));if(k&&r[k]!==undefined)return cleanNum(r[k],true);}return 0;})(),
+        sales:findSalesCol(r),
+        acos:cleanNum(r['Total Advertising Cost of Sales (ACOS) ']||r['acos'])||0,
+        roas:cleanNum(r['Total Return on Advertising Spend (ROAS)']||r['roas'])||0,
+        bcg:cm.bcg||'',
+        category:cm.category||'',
+      };
+    }).filter(r=>r.Date);
+    // Merge ASIN maps
+    Object.assign(ASIN_MAP,asinMapLocal);
+    const plcFinal=plcSheet?plcNorm:[];
+    await loadData(strNorm,plcFinal,file.name.replace(/\.xlsx?$/i,''));
+  }catch(e){
+    err.textContent='Error: '+e.message;
+    prog.textContent='';
+    console.error(e);
+  }
+}
 
-      let h = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">`;
+async function decomp(b64){
+  const bin=atob(b64),bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  const ds=new DecompressionStream('gzip');
+  const w=ds.writable.getWriter();w.write(bytes);w.close();
+  const r=ds.readable.getReader();const ch=[];
+  while(true){const{done,value}=await r.read();if(done)break;ch.push(value);}
+  const tot=ch.reduce((a,c)=>a+c.length,0);const out=new Uint8Array(tot);let off=0;
+  ch.forEach(c=>{out.set(c,off);off+=c.length;});
+  return new TextDecoder().decode(out);
+}
 
-      // Left: Explicit campaigns list
-      h += `<div>
-        <div class="exp-title" style="color:#60a5fa">🎯 Explicit Targeting (${row.explicitCampaigns.length} campaign${row.explicitCampaigns.length>1?'s':''})</div>
-        <div class="camp-grid">${row.explicitCampaigns.map(c=>`
-          <div style="padding:6px 10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:5px;font-size:11px;font-family:var(--mono);color:#93c5fd;overflow:hidden;text-overflow:ellipsis" title="${c}">${renderWithASIN(c,50)}</div>
-        `).join('')}</div>
-      </div>`;
+async function loadData(strData,plcData,brandName){
+  RAW_STR=strData;RAW_PLC=plcData;BRAND_NAME=brandName||'Amazon Ads';
+  document.getElementById('brandName').textContent=BRAND_NAME;
+  // Date range from data
+  const allDates=[...new Set([...RAW_STR.map(r=>r.Date),...RAW_PLC.map(r=>r.Date)])].sort();
+  if(allDates.length){
+    document.getElementById('a_from').value=allDates[0];
+    document.getElementById('a_to').value=allDates[allDates.length-1];
+    document.getElementById('b_from').value=allDates[0];
+    document.getElementById('b_to').value=allDates[allDates.length-1];
+  }
+  // Populate dropdowns
+  const ports=[...new Set([...RAW_STR.map(r=>r.portfolio),...RAW_PLC.map(r=>r.portfolio)])].filter(Boolean).sort();
+  const cats=[...new Set([...RAW_STR.map(r=>r.category),...RAW_PLC.map(r=>r.category)])].filter(Boolean).sort();
+  ALL_CAMPS=[...new Set([...RAW_STR.map(r=>r.campaign),...RAW_PLC.map(r=>r.campaign)])].filter(Boolean).sort();
+  ['a_port','b_port'].forEach(id=>{
+    const s=document.getElementById(id);
+    while(s.options.length>1)s.remove(1);
+    ports.forEach(p=>{const o=document.createElement('option');o.value=p;o.text=p;s.appendChild(o);});
+  });
+  ['a_cat','b_cat'].forEach(id=>{
+    const s=document.getElementById(id);
+    while(s.options.length>1)s.remove(1);
+    cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.text=c;s.appendChild(o);});
+  });
+  ['a_camp','b_camp'].forEach(id=>{
+    const s=document.getElementById(id);
+    while(s.options.length>1)s.remove(1);
+    ALL_CAMPS.forEach(c=>{const o=document.createElement('option');o.value=c;o.text=c.length>42?c.slice(0,42)+'…':c;s.appendChild(o);});
+  });
+  // Show/hide placement tab based on whether placement data exists
+  const hasPlc=RAW_PLC.length>0;
+  const tabs=document.querySelectorAll('.tab');
+  if(tabs[1])tabs[1].style.display=hasPlc?'':'none';
+  if(!hasPlc&&currentTab==='placement'){currentTab='str';tabs[0]&&tabs[0].classList.add('active');}
+  document.getElementById('uploadOverlay').style.display='none';
+  document.getElementById('dashWrap').style.display='';
+  document.getElementById('replaceBtn').style.display='';
+  document.getElementById('loading').style.display='none';
+  applyFilters();
+}
 
-      // Right: Auto bleed campaigns list
-      h += `<div>
-        <div class="exp-title" style="color:#f59e0b">⚡ Auto Bleed (${row.autoCampaigns.length} campaign${row.autoCampaigns.length>1?'s':''})</div>
-        <div class="camp-grid">${row.autoCampaigns.map(c=>`
-          <div style="padding:6px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:5px;font-size:11px;font-family:var(--mono);color:#fcd34d;overflow:hidden;text-overflow:ellipsis" title="${c}">${c}</div>
-        `).join('')}</div>
-      </div>`;
-      h += `</div>`;
+// ── INIT ──────────────────────────────────────────────────
+async function init(){
+  // STR trend metric toggles (max 4 selectable)
+  const tw=document.getElementById('strMetricToggles');
+  STR_TREND_METRICS.forEach((m,i)=>{
+    const b=document.createElement('div');
+    b.className='metric-pill'+(i===0?' sel-0':'');
+    b.textContent=m.label;b.dataset.key=m.key;
+    b.onclick=()=>toggleTrendMetric(m.key,b);
+    tw.appendChild(b);
+  });
+  // PLC placement toggles
+  const pw=document.getElementById('plcPlcToggles');
+  [{k:'TOS',c:'tos'},{k:'ROS',c:'ros'},{k:'PP',c:'pp'}].forEach(p=>{
+    const b=document.createElement('div');b.className='plc-tog on '+p.c;b.textContent=p.k;b.dataset.plc=p.k;
+    b.onclick=()=>{
+      const on=b.classList.contains('on');
+      if(on&&selPlcs.length===1)return;
+      if(on){selPlcs=selPlcs.filter(x=>x!==p.k);b.classList.remove('on');}
+      else{selPlcs.push(p.k);b.classList.add('on');}
+      renderPlcChart();
+    };
+    pw.appendChild(b);
+  });
+  buildMetricPills();
+  buildTblFilters('str','a');buildTblFilters('str','b');
+  buildTblFilters('plc','a');buildTblFilters('plc','b');
+  // Show upload screen — user must upload or choose to load sample data
+  document.getElementById('uploadOverlay').style.display='flex';
+  document.getElementById('loading').style.display='none';
+}
 
-      // Side-by-side metric comparison table
-      h += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="background:var(--bg3)">
-              <th style="padding:7px 10px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-family:var(--mono);text-align:left;border-bottom:1px solid var(--border)">Metric</th>
-              <th style="padding:7px 14px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:#60a5fa;font-family:var(--mono);text-align:right;border-bottom:1px solid var(--border)">🎯 Explicit</th>
-              <th style="padding:7px 14px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:#f59e0b;font-family:var(--mono);text-align:right;border-bottom:1px solid var(--border)">⚡ Auto Bleed</th>
-              <th style="padding:7px 14px;font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-family:var(--mono);text-align:right;border-bottom:1px solid var(--border)">∑ Combined</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${metricRow('Impressions', row.explicitImpr,   row.autoImpr,   v=>fmt.num(v),   'higher')}
-            ${metricRow('Clicks',      row.explicitClicks, row.autoClicks, v=>fmt.num(v),   'higher')}
-            ${metricRow('Spend (₹)',   row.explicitSpend,  row.autoBleedSpend, v=>fmt.inr(v),'lower')}
-            ${metricRow('Sales (₹)',   row.explicitSales,  row.autoSales,  v=>fmt.inr(v),   'higher')}
-            ${metricRow('Orders',      row.explicitOrders, row.autoOrders, v=>v,            'higher')}
-            ${metricRow('ACOS %',      row.explicitAcos,   row.autoAcos,   v=>v>0?v.toFixed(1)+'%':'—','lower')}
-            ${metricRow('CVR %',       row.explicitCvr,    row.autoCvr,    v=>v.toFixed(1)+'%','higher')}
-            ${metricRow('CTR %',       row.explicitCtr,    row.autoCtr,    v=>v.toFixed(2)+'%','higher')}
-            ${metricRow('CPC (₹)',     row.explicitCpc,    row.autoCpc,    v=>v>0?fmt.inr(v):'—','lower')}
-            ${metricRow('ROAS',        row.explicitRoas,   row.autoRoas,   v=>v>0?v.toFixed(2)+'x':'—','higher')}
-          </tbody>
-        </table>
-      </div>`;
+// ── TREND METRIC TOGGLES ─────────────────────────────────
+function toggleTrendMetric(key,btn){
+  const idx=activeTrendMetrics.indexOf(key);
+  if(idx>=0){
+    if(activeTrendMetrics.length<=1)return;
+    activeTrendMetrics.splice(idx,1);
+    btn.className='metric-pill';
+  }else{
+    if(activeTrendMetrics.length>=4)return;
+    activeTrendMetrics.push(key);
+  }
+  // recompute classes
+  document.querySelectorAll('#strMetricToggles .metric-pill').forEach(b=>{
+    const ki=activeTrendMetrics.indexOf(b.dataset.key);
+    b.className='metric-pill'+(ki>=0?' sel-'+ki:'')+(activeTrendMetrics.length>=4&&ki<0?' maxed':'');
+  });
+  renderTrend();
+}
 
-      // Fix recommendation
-      const isWorthKeeping = row.autoOrders > 0 && row.autoAcos > 0 && row.autoAcos < 120;
-      h += `<div style="padding:9px 12px;background:${isWorthKeeping?'rgba(245,158,11,0.07)':'rgba(239,68,68,0.06)'};border:1px solid ${isWorthKeeping?'rgba(245,158,11,0.2)':'rgba(239,68,68,0.15)'};border-radius:6px;font-size:11px;font-family:var(--mono);color:${isWorthKeeping?'var(--amber)':'#f87171'}">
-        ${isWorthKeeping
-          ? `⚠ Auto bleed has ${row.autoOrders} order(s) at ${row.autoAcos}% ACOS — evaluate before negating. Consider adding as explicit target instead.`
-          : `📋 FIX: Add <strong>"${row.searchTerm}"</strong> as Negative Exact in: ${row.autoCampaigns.join(' · ')}`
-        }
-      </div>`;
+// ── METRIC PILLS (PLC chart) ──────────────────────────────
+function buildMetricPills(){
+  const w=document.getElementById('plcMetricPills');w.innerHTML='';
+  PLC_METRICS.forEach(m=>{
+    const i=selMets.indexOf(m.key);const maxed=selMets.length>=4&&i<0;
+    const p=document.createElement('div');
+    p.className='metric-pill'+(i>=0?' sel-'+i:'')+(maxed?' maxed':'');
+    p.textContent=m.label;p.dataset.key=m.key;p.onclick=()=>toggleMet(m.key);
+    w.appendChild(p);
+  });
+  updateLegend();
+}
+function toggleMet(key){
+  const i=selMets.indexOf(key);
+  if(i>=0){if(selMets.length<=1)return;selMets.splice(i,1);}
+  else{if(selMets.length>=4)return;selMets.push(key);}
+  buildMetricPills();renderPlcChart();
+}
+function updateLegend(){
+  const n=document.getElementById('plcLegendNote');
+  const l=selMets.map((k,i)=>{const m=PLC_METRICS.find(x=>x.key===k);return`<span style="color:${MC[i]};font-weight:700">${m.label}</span>`;});
+  n.innerHTML=l.join(' · ')+'&ensp;|&ensp;<span style="color:var(--text3)">TOS=solid · ROS=dashed · PP=dotted</span>';
+}
 
-      return h;
+// ── TABLE FILTER BARS ─────────────────────────────────────
+function buildTblFilters(report,p){
+  const fields=report==='str'?STR_MF_FIELDS:PLC_MF_FIELDS;
+  const wr=document.getElementById(report+'-tfl-'+p);if(!wr)return;
+  const ph=report==='str'?'Search term, targeting, campaign…':'Campaign, portfolio, category…';
+  wr.innerHTML=`
+    <span class="tfl">Search</span>
+    <input class="srch" id="tfl-srch-${report}-${p}" placeholder="${ph}" oninput="filterTbl('${report}','${p}')" style="width:220px;">
+    <div class="tfsep"></div>
+    <span class="tfl">KPI Filter</span>
+    <div class="metric-filter">
+      <select class="mf-sel" id="tfl-mf-field-${report}-${p}">
+        ${fields.map(f=>`<option value="${f.key}">${f.label}</option>`).join('')}
+      </select>
+      <select class="mf-op" id="tfl-mf-op-${report}-${p}">
+        <option>></option><option>>=</option><option>&lt;</option><option>&lt;=</option><option>=</option>
+      </select>
+      <input class="mf-val" id="tfl-mf-val-${report}-${p}" type="number" placeholder="value" step="any">
+      <button class="mf-add" onclick="addMF('${report}','${p}')">+ Add</button>
+    </div>
+    <div class="mf-active-wrap" id="tfl-mftags-${report}-${p}"></div>`;
+}
+function getMFArr(report,p){
+  if(report==='str'&&p==='a')return mfA_str;if(report==='str'&&p==='b')return mfB_str;
+  if(report==='plc'&&p==='a')return mfA_plc;return mfB_plc;
+}
+function addMF(report,p){
+  const field=document.getElementById('tfl-mf-field-'+report+'-'+p).value;
+  const op=document.getElementById('tfl-mf-op-'+report+'-'+p).value;
+  const val=parseFloat(document.getElementById('tfl-mf-val-'+report+'-'+p).value);
+  if(isNaN(val))return;
+  const fields=report==='str'?STR_MF_FIELDS:PLC_MF_FIELDS;
+  const lbl=fields.find(f=>f.key===field)?.label||field;
+  getMFArr(report,p).push({field,op,val,lbl});
+  renderMFTags(report,p);filterTbl(report,p);
+  document.getElementById('tfl-mf-val-'+report+'-'+p).value='';
+}
+function renderMFTags(report,p){
+  const mfArr=getMFArr(report,p);
+  const tags=document.getElementById('tfl-mftags-'+report+'-'+p);if(!tags)return;
+  tags.className='mf-active-wrap'+(mfArr.length?' has-filters':'');
+  tags.innerHTML=mfArr.map((f,i)=>
+    `<span class="mf-tag" onclick="removeMF('${report}','${p}',${i})">${f.lbl} ${f.op} ${f.val} ✕</span>`
+  ).join('');
+}
+function removeMF(report,p,i){
+  getMFArr(report,p).splice(i,1);renderMFTags(report,p);filterTbl(report,p);
+}
+function applyMF(rows,mfArr){
+  if(!mfArr.length)return rows;
+  const pctFields=['acos','ctr','cvr','cr','is_share'];
+  return rows.filter(r=>mfArr.every(f=>{
+    const v=r[f.field]||0;
+    let fv=pctFields.includes(f.field)?f.val/100:f.val;
+    if(f.op==='>')return v>fv;if(f.op==='>=')return v>=fv;
+    if(f.op==='<')return v<fv;if(f.op==='<=')return v<=fv;
+    return Math.abs(v-fv)<1e-9;
+  }));
+}
+
+// ── FILTER HELPERS ────────────────────────────────────────
+function gf(p){
+  return{
+    from:document.getElementById(p+'_from').value,
+    to:document.getElementById(p+'_to').value,
+    port:document.getElementById(p+'_port').value,
+    cat:document.getElementById(p+'_cat').value,
+    bcg:document.getElementById(p+'_bcg').value,
+    camp:(document.getElementById(p+'_camp')||{}).value||'',
+    match:(document.getElementById(p+'_match')||{}).value||'',
+    plc:(document.getElementById(p+'_plc')||{}).value||'',
+  };
+}
+function fd(data,f,isPlc=false){
+  return data.filter(r=>{
+    if(f.from&&r.Date<f.from)return false;
+    if(f.to&&r.Date>f.to)return false;
+    if(f.port&&r.portfolio!==f.port)return false;
+    if(f.cat&&r.category!==f.cat)return false;
+    if(f.bcg&&r.bcg!==f.bcg)return false;
+    if(f.camp&&r.campaign!==f.camp)return false;
+    if(!isPlc&&f.match&&r.match_type!==f.match)return false;
+    if(f.plc&&r.placement_short!==f.plc)return false;
+    return true;
+  });
+}
+
+function fmtDateRange(f){
+  const d=s=>s?new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'-';
+  return d(f.from)+' – '+d(f.to);
+}
+
+function applyFilters(){
+  const fa=gf('a'),fb=gf('b');
+  DA_STR=fd(RAW_STR,fa,false);DA_PLC=fd(RAW_PLC,fa,true);
+  DB_STR=cmpMode?fd(RAW_STR,fb,false):[];DB_PLC=cmpMode?fd(RAW_PLC,fb,true):[];
+  GA_STR=aggSTR(DA_STR);GA_PLC=aggPLC(DA_PLC);
+  GB_STR=cmpMode?aggSTR(DB_STR):[];GB_PLC=cmpMode?aggPLC(DB_PLC):[];
+  FA_STR=applyMF([...GA_STR],mfA_str);FA_PLC=applyMF([...GA_PLC],mfA_plc);
+  FB_STR=applyMF([...GB_STR],mfB_str);FB_PLC=applyMF([...GB_PLC],mfB_plc);
+  document.getElementById('dateDisplay').textContent=fmtDateRange(fa);
+  updLayout();
+  renderKPIs('str-kpi-a',DA_STR,DB_STR,true,'a');
+  renderKPIs('plc-kpi-a',DA_PLC,DB_PLC,false,'a');
+  if(cmpMode){renderKPIs('str-kpi-b',DB_STR,[],true,'b');renderKPIs('plc-kpi-b',DB_PLC,[],false,'b');}
+  pgA_str=1;pgB_str=1;pgA_plc=1;pgB_plc=1;
+  renderStr('a');if(cmpMode)renderStr('b');
+  renderPlc('a');if(cmpMode)renderPlc('b');
+  renderTrend();
+  if(currentTab==='placement')renderPlcChart();
+}
+
+function updLayout(){
+  const c=cmpMode;
+  const fa=gf('a'),fb=gf('b');
+  const lA=fmtDateRange(fa),lB=fmtDateRange(fb);
+  document.getElementById('str-tbl-grid').className='cmp-tables '+(c?'two':'one');
+  document.getElementById('plc-tbl-grid').className='cmp-tables '+(c?'two':'one');
+  document.getElementById('str-col-b').style.display=c?'':'none';
+  document.getElementById('plc-col-b').style.display=c?'':'none';
+  document.getElementById('str-chart-single').style.display=c?'none':'';
+  document.getElementById('str-chart-a').style.display=c?'':'none';
+  document.getElementById('plc-chart-single').style.display=c?'none':'';
+  document.getElementById('plc-chart-a').style.display=c?'':'none';
+  if(c){
+    document.getElementById('str-chart-lbl-a').textContent=lA;
+    document.getElementById('str-chart-lbl-b').textContent=lB;
+    document.getElementById('plc-chart-lbl-a').textContent=lA;
+    document.getElementById('plc-chart-lbl-b').textContent=lB;
+  }
+  document.getElementById('str-kpi-row').className='kpi-row '+(c?'two':'one');
+  document.getElementById('plc-kpi-row').className='kpi-row '+(c?'two':'one');
+  let sb=document.getElementById('str-kpi-b');
+  if(c&&!sb){sb=document.createElement('div');sb.className='kpi-section';sb.id='str-kpi-b';document.getElementById('str-kpi-row').appendChild(sb);}
+  else if(!c&&sb)sb.remove();
+  let pb=document.getElementById('plc-kpi-b');
+  if(c&&!pb){pb=document.createElement('div');pb.className='kpi-section';pb.id='plc-kpi-b';document.getElementById('plc-kpi-row').appendChild(pb);}
+  else if(!c&&pb)pb.remove();
+  // Label tables with actual date ranges
+  document.getElementById('str-lbl-a').textContent=c?'Search Terms — '+lA:'Search Terms';
+  document.getElementById('plc-lbl-a').textContent=c?'Placements — '+lA:'Placements';
+  if(c){
+    document.getElementById('str-lbl-b').textContent='Search Terms — '+lB;
+    document.getElementById('plc-lbl-b').textContent='Placements — '+lB;
+  }
+}
+
+// ── AGGREGATION ───────────────────────────────────────────
+function aggSTR(data){
+  const map={};
+  data.forEach(r=>{
+    const k=r.Targeting+'|'+r.portfolio+'|'+r.match_type+'|'+r.bcg+'|'+r.targeting_display+'|'+r.search_term+'|'+r.campaign;
+    if(!map[k])map[k]={targeting_display:r.targeting_display,search_term:r.search_term,Targeting:r.Targeting,portfolio:r.portfolio,campaign:r.campaign,match_type:r.match_type,bcg:r.bcg,category:r.category,Impressions:0,Clicks:0,Spend:0,orders:0,sales:0,is_s:0,ir_s:0,n:0};
+    const e=map[k];e.Impressions+=r.Impressions||0;e.Clicks+=r.Clicks||0;e.Spend+=r.Spend||0;e.orders+=r.orders||0;e.sales+=r.sales||0;e.is_s+=r.is_share||0;e.ir_s+=r.is_rank||0;e.n++;
+  });
+  return Object.values(map).map(r=>{r.ctr=r.Impressions>0?r.Clicks/r.Impressions:0;r.cpc=r.Clicks>0?r.Spend/r.Clicks:0;r.acos=r.sales>0?r.Spend/r.sales:0;r.roas=r.Spend>0?r.sales/r.Spend:0;r.cvr=r.Clicks>0?r.orders/r.Clicks:0;r.is_share=r.n>0?r.is_s/r.n:0;r.is_rank=r.n>0?r.ir_s/r.n:0;return r;});
+}
+function aggPLC(data){
+  const map={};
+  data.forEach(r=>{
+    const k=r.campaign+'|'+r.placement_short;
+    if(!map[k])map[k]={campaign:r.campaign,portfolio:r.portfolio,placement_short:r.placement_short,bcg:r.bcg||'',category:r.category||'',Impressions:0,Clicks:0,Spend:0,orders:0,sales:0,units:0};
+    const e=map[k];e.Impressions+=r.Impressions||0;e.Clicks+=r.Clicks||0;e.Spend+=r.Spend||0;e.orders+=r.orders||0;e.sales+=r.sales||0;e.units+=r.units||0;
+  });
+  return Object.values(map).map(r=>{r.ctr=r.Impressions>0?r.Clicks/r.Impressions:0;r.cpc=r.Clicks>0?r.Spend/r.Clicks:0;r.acos=r.sales>0?r.Spend/r.sales:0;r.roas=r.Spend>0?r.sales/r.Spend:0;r.cr=r.Clicks>0?r.orders/r.Clicks:0;return r;});
+}
+function sumK(data){
+  const s={Impressions:0,Clicks:0,Spend:0,orders:0,sales:0,units:0};
+  data.forEach(r=>{s.Impressions+=r.Impressions||0;s.Clicks+=r.Clicks||0;s.Spend+=r.Spend||0;s.orders+=r.orders||0;s.sales+=r.sales||0;s.units+=r.units||0;});
+  s.ctr=s.Impressions>0?s.Clicks/s.Impressions:0;s.cpc=s.Clicks>0?s.Spend/s.Clicks:0;s.acos=s.sales>0?s.Spend/s.sales:0;s.roas=s.Spend>0?s.sales/s.Spend:0;s.cvr=s.Clicks>0?s.orders/s.Clicks:0;
+  return s;
+}
+
+// ── FORMATTING ────────────────────────────────────────────
+const fN=n=>n>=1e7?(n/1e7).toFixed(1)+'Cr':n>=1e5?(n/1e5).toFixed(1)+'L':n>=1e3?(n/1e3).toFixed(1)+'K':Math.round(n).toLocaleString('en-IN');
+const fR=n=>'₹'+fN(n);const fP=n=>(n*100).toFixed(2)+'%';const fX=n=>n.toFixed(2)+'x';
+function fmtM(v,fmt){if(fmt==='rs')return fR(v);if(fmt==='pct')return fP(v);if(fmt==='x')return fX(v);return fN(v);}
+function fmtFull(v,fmt){
+  if(fmt==='rs')return '₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0});
+  if(fmt==='pct')return (v*100).toFixed(2)+'%';
+  if(fmt==='x')return v.toFixed(3)+'x';
+  return v.toLocaleString('en-IN',{maximumFractionDigits:0});
+}
+
+// ── KPI CARDS ─────────────────────────────────────────────
+function renderKPIs(elId,curr,cmp,isSTR,period){
+  const el=document.getElementById(elId);if(!el)return;
+  const s=sumK(curr),ps=cmp&&cmp.length?sumK(cmp):null;
+  const showDelta=cmpMode&&period==='a'&&ps;
+  const fa=gf('a'),fb=gf('b');
+  const pLabel=period==='b'?fmtDateRange(fb):fmtDateRange(fa);
+  const pCls=period==='b'?'b':'a';
+  const defs=[
+    ['Impressions',fN(s.Impressions),'ks-blue',s.Impressions,ps?.Impressions,true],
+    ['Clicks',fN(s.Clicks),'ks-cyan',s.Clicks,ps?.Clicks,true],
+    ['CTR',fP(s.ctr),'ks-cyan',s.ctr,ps?.ctr,true],
+    ['Spend ₹',fR(s.Spend),'ks-orange',s.Spend,ps?.Spend,false],
+    ['CPC ₹',fR(s.cpc),'ks-amber',s.cpc,ps?.cpc,false],
+    ['Orders',fN(s.orders),'ks-green',s.orders,ps?.orders,true],
+    ...(!isSTR?[['Units',fN(s.units),'ks-green',s.units,ps?.units,true]]:[]),
+    ['Sales ₹',fR(s.sales),'ks-green',s.sales,ps?.sales,true],
+    ['ACoS',fP(s.acos),s.acos>0.5?'ks-red':s.acos>0.3?'ks-amber':'ks-green',s.acos,ps?.acos,false],
+    ['RoAS',fX(s.roas),s.roas<1?'ks-red':s.roas<2?'ks-amber':'ks-green',s.roas,ps?.roas,true],
+    ...(isSTR?[['Ad CR%',fP(s.cvr),'ks-cyan',s.cvr,ps?.cvr,true]]:[]),
+  ];
+  const hdr=`<div class="kpi-sec-hdr"><div class="period-tag ${pCls}">${pLabel}</div><span class="kpi-count">${curr.length.toLocaleString()} data pts</span></div>`;
+  const cells=defs.map(([lbl,val,cls,cv,pv,hib])=>{
+    let dh='<div class="kpi-delta">—</div>';
+    if(showDelta&&pv!=null&&pv!==0){const dv=(cv-pv)/Math.abs(pv);const good=hib?dv>=0:dv<=0;const sign=dv>=0?'▲':'▼';dh=`<div class="kpi-delta ${good?'pos':'neg'}">${sign}${Math.abs(dv*100).toFixed(1)}% vs B</div>`;}
+    return `<div class="kpi-cell ${cls}"><div class="kpi-label">${lbl}</div><div class="kpi-val">${val}</div>${dh}<div class="kpi-stripe"></div></div>`;
+  }).join('');
+  el.innerHTML=hdr+'<div class="kpi-grid">'+cells+'</div>';
+}
+
+// ── CHART DEFAULTS ────────────────────────────────────────
+function cDefaults(){
+  return{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{labels:{color:'#4a5470',font:{size:10},boxWidth:20},position:'top'},
+      tooltip:{backgroundColor:'#fff',titleColor:'#1a2035',bodyColor:'#4a5470',borderColor:'#e2e5ef',borderWidth:1,padding:10}
+    },
+    scales:{
+      x:{ticks:{color:'#8892ae',font:{size:10},maxTicksLimit:14,maxRotation:45},grid:{color:'#eef0f6'}},
+      y:{ticks:{color:'#8892ae',font:{size:10}},grid:{color:'#eef0f6'}}
     }
-  });
+  };
+}
 
-  function applyBleedFilter(){
-    const q=document.getElementById('bSearch').value.toLowerCase();
-    const sf=document.getElementById('bSort').value;
-    filterTable('bleedTbl',d=>(!q||d.searchTerm.toLowerCase().includes(q)));
-    if(sf){ _pages['bleedTbl'].filtered.sort((a,b)=>b[sf]-a[sf]); _pages['bleedTbl'].render(); }
+// ── STR TREND CHART (multi-metric, max 4) ────────────────
+function buildDailySTR(data,metric){
+  // Spend, Clicks, Impressions are additive per row — sum them directly.
+  // Orders, Sales, CVR come from Amazon's attribution window and are already
+  // per-row totals — each row is a unique (date × campaign × adgroup × targeting),
+  // so summing them per date is correct at the raw-row level.
+  const map={};
+  data.forEach(r=>{
+    if(!map[r.Date])map[r.Date]={s:0,cl:0,im:0,sp:0,or:0,sa:0};
+    const v=map[r.Date];
+    // For ratio metrics, accumulate numerator/denominators separately
+    v.cl+=r.Clicks||0;
+    v.im+=r.Impressions||0;
+    v.sp+=r.Spend||0;
+    v.or+=r.orders||0;
+    v.sa+=r.sales||0;
+    // For the selected metric, accumulate raw value only for non-derived metrics
+    if(!['ctr','acos','cpc','roas','cvr'].includes(metric))v.s+=r[metric]||0;
+  });
+  const dates=Object.keys(map).sort();
+  const vals=dates.map(d=>{
+    const v=map[d];
+    if(metric==='ctr')return v.im>0?v.cl/v.im:0;
+    if(metric==='acos')return v.sa>0?v.sp/v.sa:0;
+    if(metric==='cpc')return v.cl>0?v.sp/v.cl:0;
+    if(metric==='roas')return v.sp>0?v.sa/v.sp:0;
+    if(metric==='cvr')return v.cl>0?v.or/v.cl:0;
+    if(metric==='orders')return v.or;
+    if(metric==='sales')return v.sa;
+    if(metric==='Spend')return v.sp;
+    if(metric==='Clicks')return v.cl;
+    if(metric==='Impressions')return v.im;
+    return v.s;
+  });
+  return{dates,vals};
+}
+
+function renderTrend(){
+  function buildChartForData(data,canvasId,dashed){
+    const dates0=[]; const datasetsOut=[]; const yAxes={};
+    activeTrendMetrics.forEach((mKey,mi)=>{
+      const mDef=STR_TREND_METRICS.find(x=>x.key===mKey);
+      const col=mDef?mDef.col:MC[mi%4];
+      const fmt=mDef?mDef.fmt:'num';
+      const axId='y'+mi;
+      yAxes[axId]={
+        type:'linear',display:true,position:mi%2===0?'left':'right',
+        grid:{color:mi===0?'#eef0f6':'transparent',drawOnChartArea:mi===0},
+        ticks:{color:col,font:{size:9},callback:v=>fmtFull(v,fmt)},
+        title:{display:activeTrendMetrics.length>1,text:mDef?.label||mKey,color:col,font:{size:9}},
+      };
+      const{dates,vals}=buildDailySTR(data,mKey);
+      if(mi===0&&dates.length)dates0.push(...dates);
+      const ds={label:mDef?.label||mKey,data:vals,borderColor:col,backgroundColor:col+'14',fill:mi===0&&activeTrendMetrics.length===1,tension:0,pointRadius:2,pointBackgroundColor:col,borderWidth:2,yAxisID:axId};
+      if(dashed)ds.borderDash=[5,3];
+      datasetsOut.push(ds);
+    });
+    const labels=(dates0.length?dates0:Object.keys(buildDailySTR(data,activeTrendMetrics[0]).dates||{}).sort()).map(d=>d.slice(5));
+    const {dates:dAll}=buildDailySTR(data,activeTrendMetrics[0]);
+    const opts=cDefaults();
+    opts.plugins.legend.display=activeTrendMetrics.length>1;
+    opts.plugins.tooltip.callbacks={
+      label:ctx=>{const v=ctx.parsed.y;if(v==null)return null;const mi=ctx.datasetIndex%(dashed?1:activeTrendMetrics.length);const mDef=STR_TREND_METRICS.find(x=>x.key===activeTrendMetrics[ctx.datasetIndex]);return(ctx.dataset.label||'')+': '+fmtFull(v,mDef?.fmt||'num');}
+    };
+    delete opts.scales.y;
+    Object.assign(opts.scales,yAxes);
+    return{labels:dAll.map(d=>d.slice(5)),datasets:datasetsOut,opts};
   }
-  document.getElementById('bSearch').addEventListener('input',applyBleedFilter);
-  document.getElementById('bSort').addEventListener('change',applyBleedFilter);
-}
-
-// ── CAMPAIGN TAB ──
-function buildCampTab() {
-  const data = G.campData;
-  const mts=[...new Set(data.map(d=>d.matchType))].sort();
-  const ports=[...new Set(data.map(d=>d.portfolio))].sort();
-  document.getElementById('cMT').innerHTML='<option value="">All Match Types</option>'+mts.map(m=>`<option value="${m}">${m}</option>`).join('');
-  document.getElementById('cPort').innerHTML='<option value="">All Portfolios</option>'+ports.map(p=>`<option value="${p}">${p}</option>`).join('');
-  const maxSpend = Math.max(...data.map(d=>d.spend));
-
-  _pages['campTbl'] = null;
-  renderTable({
-    id:'campTbl', pgId:'campPgr', countId:'cCount',
-    data, pageSize:15, sortKey:'spend', sortDir:-1,
-    cols:[
-      {label:'#', render:()=>'', cls:'mono'},
-      {label:'Campaign', render:d=>`<span style="font-size:11px;overflow:hidden;text-overflow:ellipsis;display:block;max-width:220px" title="${d.campaign}">${d.campaign}</span>`, cls:'name'},
-      {label:'Match Type', render:d=>mtBadge(d.matchType)},
-      {label:'Portfolio', render:d=>`<span class="badge b-grey">${d.portfolio}</span>`},
-      {label:'Spend ↓', key:'spend', render:d=>`<span style="font-weight:600;font-family:var(--mono);font-size:11px">${fmt.inr(d.spend)}</span>`},
-      {label:'Orders', key:'orders', render:d=>`<span style="color:#34d399;font-weight:600;font-family:var(--mono)">${d.orders}</span>`},
-      {label:'Sales', key:'sales', render:d=>`<span style="font-family:var(--mono);font-size:11px">${fmt.inr(d.sales)}</span>`},
-      {label:'ACOS', key:'acos', render:d=>acosCol(d.acos)},
-      {label:'CVR%', key:'cvr', render:d=>`<span style="font-family:var(--mono);font-size:11px">${d.cvr.toFixed(1)}%</span>`},
-      {label:'CTR%', key:'ctr', render:d=>`<span style="font-family:var(--mono);font-size:11px">${d.ctr.toFixed(2)}%</span>`},
-      {label:'Clicks', key:'clicks', render:d=>fmt.num(d.clicks), cls:'mono'},
-      {label:'Spend Bar', render:d=>`<div class="spend-bar"><div class="spend-fill" style="width:${(d.spend/maxSpend*100).toFixed(0)}%"></div></div>`},
-    ],
-  });
-
-  function applyCampFilter(){
-    const q=document.getElementById('cSearch').value.toLowerCase();
-    const mt=document.getElementById('cMT').value;
-    const port=document.getElementById('cPort').value;
-    const af=document.getElementById('cAcos').value;
-    filterTable('campTbl',d=>
-      (!q||d.campaign.toLowerCase().includes(q))&&
-      (!mt||d.matchType===mt)&&
-      (!port||d.portfolio===port)&&
-      (!af||(af==='eff'&&d.acos<50)||(af==='mod'&&d.acos>=50&&d.acos<100)||(af==='high'&&d.acos>=100))
-    );
+  if(!cmpMode){
+    const{labels,datasets,opts}=buildChartForData(DA_STR,'trendChart',false);
+    if(trendInst)trendInst.destroy();
+    trendInst=new Chart(document.getElementById('trendChart').getContext('2d'),{type:'line',data:{labels,datasets},options:opts});
+    if(trendInstA){trendInstA.destroy();trendInstA=null;}
+    if(trendInstB){trendInstB.destroy();trendInstB=null;}
+  }else{
+    if(trendInst){trendInst.destroy();trendInst=null;}
+    const{labels:lA,datasets:dsA,opts:oA}=buildChartForData(DA_STR,'trendChartA',false);
+    if(trendInstA)trendInstA.destroy();
+    trendInstA=new Chart(document.getElementById('trendChartA').getContext('2d'),{type:'line',data:{labels:lA,datasets:dsA},options:oA});
+    if(DB_STR.length){
+      const{labels:lB,datasets:dsB,opts:oB}=buildChartForData(DB_STR,'trendChartB',true);
+      if(trendInstB)trendInstB.destroy();
+      trendInstB=new Chart(document.getElementById('trendChartB').getContext('2d'),{type:'line',data:{labels:lB,datasets:dsB},options:oB});
+    }
   }
-  document.getElementById('cSearch').addEventListener('input',applyCampFilter);
-  ['cMT','cPort','cAcos'].forEach(id=>document.getElementById(id).addEventListener('change',applyCampFilter));
 }
 
-// ── OVERVIEW CHARTS ──
-function buildOverview() {
-  const s=G.summary;
-  const wasteP=(s.wasteSpend/s.totalSpend*100).toFixed(0);
-
-  // Top insights (dynamic)
-  const topWaste=G.wasteData[0];
-  const topGap=G.isGapData[0];
-  const topBleed=G.bleedData[0];
-  const worstCamp=G.campData.filter(c=>c.orders===0&&c.spend>5000).sort((a,b)=>b.spend-a.spend)[0];
-  const highACOS=G.campData.filter(c=>c.acos>150).length;
-
-  const insights=[];
-  if(topWaste) insights.push({icon:'🔴',text:`<strong>${fmt.inr(s.wasteSpend)}</strong> wasted on ${G.wasteData.length}+ zero-order terms (${wasteP}% of budget). Top waster: <strong>"${topWaste.searchTerm}"</strong> — ${fmt.inr(topWaste.totalSpend)}.`});
-  if(topGap) insights.push({icon:'📉',text:`<strong>"${topGap.searchTerm}"</strong>: ${topGap.totalOrders} orders but only <strong>${topGap.impressionShare.toFixed(1)}% IS</strong>. You're missing ${(100-topGap.impressionShare).toFixed(0)}% of available impressions on your top converter.`});
-  if(topBleed) insights.push({icon:'🩸',text:`<strong>${G.bleedData.length} terms</strong> bleeding from explicit into auto campaigns. Top bleed: "${topBleed.searchTerm}" — ${fmt.inr(topBleed.autoBleedSpend)} leaking into ${topBleed.autoCampaigns.length} auto campaigns.`});
-  if(highACOS>0) insights.push({icon:'⚠️',text:`<strong>${highACOS} campaigns</strong> running at ACOS >150%. Review and reduce bids or pause non-converting targets.`});
-  const brandedCamps=G.campData.filter(c=>c.portfolio==='Branded'||c.portfolio==='All'||c.matchType==='ST');
-  if(brandedCamps.length>0){const avgBACOS=brandedCamps.reduce((s,c)=>s+(c.acos||0),0)/brandedCamps.length;insights.push({icon:'💡',text:`Branded/ST campaigns average <strong>${avgBACOS.toFixed(0)}% ACOS</strong>. Shift budget from high-ACOS generic campaigns here for efficiency gains.`});}
-
-  document.getElementById('insightList').innerHTML=insights.slice(0,5).map(i=>`<div class="ins-item"><span class="ins-icon">${i.icon}</span><div class="ins-text">${i.text}</div></div>`).join('');
-
-  // Portfolio spend chart
-  const portMap={};
-  G.campData.forEach(c=>{portMap[c.portfolio]=(portMap[c.portfolio]||0)+c.spend;});
-  const portEntries=Object.entries(portMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
-  setTimeout(()=>{
-    drawBar('catChart',portEntries.map(e=>e[0]),portEntries.map(e=>e[1]),['#3b82f6','#10b981','#f59e0b','#a855f7','#ef4444','#06b6d4','#f97316']);
-    drawDonut('healthChart',['Productive','Wasted'],[100-parseInt(wasteP),parseInt(wasteP)],['#10b981','#ef4444'],wasteP+'%','WASTE');
-    const mtMap={};G.campData.forEach(c=>{if(!mtMap[c.matchType])mtMap[c.matchType]={sp:0,sa:0};mtMap[c.matchType].sp+=c.spend;mtMap[c.matchType].sa+=c.sales;});
-    const mtE=Object.entries(mtMap).map(([k,v])=>[k,v.sa>0?(v.sp/v.sa*100):0]).sort((a,b)=>a[1]-b[1]);
-    drawBar('mtChart',mtE.map(e=>e[0]),mtE.map(e=>e[1]),mtE.map(e=>e[1]<80?'#10b981':e[1]<120?'#f59e0b':'#ef4444'),'%');
-  },100);
-
-  // Top efficient camps
-  const topCamps=G.campData.filter(c=>c.acos>0&&c.acos<50&&c.orders>5).sort((a,b)=>a.acos-b.acos).slice(0,5);
-  document.getElementById('topCamps').innerHTML=topCamps.map(c=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px">
-    <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;max-width:160px;font-family:var(--mono)" title="${c.campaign}">${c.campaign.replace('RB/SP/','')}</span>
-    <span style="color:#34d399;font-weight:600;font-family:var(--mono);flex-shrink:0">${c.acos.toFixed(0)}% ACOS</span>
-  </div>`).join('');
-}
-
-// ── CANVAS CHARTS ──
-function drawBar(id,labels,values,colors,suffix='') {
-  const canvas=document.getElementById(id); if(!canvas)return;
-  canvas.width=canvas.offsetWidth*2||800; canvas.height=(canvas.height||200)*2;
-  const ctx=canvas.getContext('2d'); ctx.scale(2,2);
-  const w=canvas.width/2,h=canvas.height/2,pad={t:14,r:10,b:28,l:10};
-  const cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
-  const max=Math.max(...values)||1;
-  const bw=cw/labels.length*0.65,gap=cw/labels.length;
-  values.forEach((v,i)=>{
-    const bh=(v/max)*ch,x=pad.l+gap*i+(gap-bw)/2,y=pad.t+ch-bh;
-    ctx.fillStyle=Array.isArray(colors)?colors[i%colors.length]:colors;
-    ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,3):ctx.rect(x,y,bw,bh);ctx.fill();
-    ctx.fillStyle='#64748b';ctx.font='9px IBM Plex Mono';ctx.textAlign='center';
-    const lbl=labels[i].length>9?labels[i].slice(0,9)+'…':labels[i];
-    ctx.fillText(lbl,x+bw/2,pad.t+ch+14);
-    ctx.fillStyle='#94a3b8';ctx.font='9px IBM Plex Mono';
-    const vs=suffix==='%'?Math.round(v)+'%':'₹'+Math.round(v/1000)+'K';
-    ctx.fillText(vs,x+bw/2,y-4);
+// ── PLC TREND CHART ───────────────────────────────────────
+function buildPlcDaily(data){
+  const map={};
+  data.forEach(r=>{
+    if(!map[r.Date])map[r.Date]={};
+    const p=r.placement_short;
+    if(!map[r.Date][p])map[r.Date][p]={Impressions:0,Clicks:0,Spend:0,orders:0,sales:0,units:0};
+    const e=map[r.Date][p];e.Impressions+=r.Impressions||0;e.Clicks+=r.Clicks||0;e.Spend+=r.Spend||0;e.orders+=r.orders||0;e.sales+=r.sales||0;e.units+=r.units||0;
   });
+  return map;
+}
+function deriveM(row,key){
+  if(!row)return null;
+  if(key==='ctr')return row.Impressions>0?row.Clicks/row.Impressions:0;
+  if(key==='acos')return row.sales>0?row.Spend/row.sales:0;
+  if(key==='cpc')return row.Clicks>0?row.Spend/row.Clicks:0;
+  if(key==='roas')return row.Spend>0?row.sales/row.Spend:0;
+  if(key==='cr')return row.Clicks>0?row.orders/row.Clicks:0;
+  return row[key]||0;
+}
+function buildPlcDatasets(mapData,datesA){
+  const datasets=[],yAxes={};
+  selMets.forEach((mKey,mi)=>{
+    const mDef=PLC_METRICS.find(x=>x.key===mKey);const col=MC[mi];
+    const axId='y'+mi;
+    yAxes[axId]={type:'linear',display:true,position:mi<2?'left':'right',grid:{color:mi===0?'#eef0f6':'transparent',drawOnChartArea:mi===0},ticks:{color:col,font:{size:9},callback:v=>fmtM(v,mDef.fmt)},title:{display:true,text:mDef.label,color:col,font:{size:9}}};
+    selPlcs.forEach(plc=>{
+      const vals=datesA.map(d=>deriveM(mapData[d]&&mapData[d][plc],mKey));
+      datasets.push({label:mDef.label+' · '+plc,data:vals,borderColor:col,borderDash:PLC_DASH[plc],pointRadius:2,tension:0,fill:false,yAxisID:axId,borderWidth:2,spanGaps:true});
+    });
+  });
+  return{datasets,yAxes};
+}
+function mkPlcOpts(yAxes){
+  return{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:true,position:'top',labels:{color:'#4a5470',font:{size:9},boxWidth:16,padding:5,generateLabels:chart=>chart.data.datasets.map((ds,i)=>{return{text:ds.label,strokeStyle:ds.borderColor,fillStyle:ds.borderColor+'30',borderDash:ds.borderDash,lineWidth:2,hidden:false,datasetIndex:i}})}},
+      tooltip:{backgroundColor:'#fff',titleColor:'#1a2035',bodyColor:'#4a5470',borderColor:'#e2e5ef',borderWidth:1,padding:10,
+        callbacks:{title:items=>'Date: '+items[0].label,label:ctx=>{const v=ctx.parsed.y;if(v==null||v===undefined)return null;const mi=Math.floor(ctx.datasetIndex/selPlcs.length)%selMets.length;const mDef=PLC_METRICS.find(x=>x.key===selMets[mi])||{fmt:'num'};return ctx.dataset.label+': '+fmtFull(v,mDef.fmt);}}
+      }
+    },
+    scales:{x:{ticks:{color:'#8892ae',font:{size:9},maxRotation:45,maxTicksLimit:14},grid:{color:'#eef0f6'}},...yAxes}
+  };
+}
+function renderPlcChart(){
+  const mapA=buildPlcDaily(DA_PLC);const datesA=Object.keys(mapA).sort();
+  if(!cmpMode){
+    const{datasets,yAxes}=buildPlcDatasets(mapA,datesA);
+    if(plcTrendInst)plcTrendInst.destroy();
+    plcTrendInst=new Chart(document.getElementById('plcTrendChart').getContext('2d'),{type:'line',data:{labels:datesA.map(d=>d.slice(5)),datasets},options:mkPlcOpts(yAxes)});
+    if(plcInstA){plcInstA.destroy();plcInstA=null;}if(plcInstB){plcInstB.destroy();plcInstB=null;}
+  }else{
+    if(plcTrendInst){plcTrendInst.destroy();plcTrendInst=null;}
+    const{datasets:dsA,yAxes:yA}=buildPlcDatasets(mapA,datesA);
+    if(plcInstA)plcInstA.destroy();
+    plcInstA=new Chart(document.getElementById('plcTrendChartA').getContext('2d'),{type:'line',data:{labels:datesA.map(d=>d.slice(5)),datasets:dsA},options:mkPlcOpts(yA)});
+    if(DB_PLC.length){
+      const mapB=buildPlcDaily(DB_PLC);const datesB=Object.keys(mapB).sort();
+      const{datasets:dsB,yAxes:yB}=buildPlcDatasets(mapB,datesB);
+      if(plcInstB)plcInstB.destroy();
+      plcInstB=new Chart(document.getElementById('plcTrendChartB').getContext('2d'),{type:'line',data:{labels:datesB.map(d=>d.slice(5)),datasets:dsB},options:mkPlcOpts(yB)});
+    }
+  }
+  updateLegend();
 }
 
-function drawDonut(id,labels,values,colors,centerVal,centerLabel) {
-  const canvas=document.getElementById(id); if(!canvas)return;
-  canvas.width=canvas.offsetWidth*2||600; canvas.height=(canvas.height||180)*2;
-  const ctx=canvas.getContext('2d'); ctx.scale(2,2);
-  const w=canvas.width/2,h=canvas.height/2;
-  const cx=w*0.38,cy=h/2,r=Math.min(cx,cy)*0.88,inner=r*0.6;
-  let ang=-Math.PI/2;
-  const total=values.reduce((s,v)=>s+v,0)||1;
-  values.forEach((v,i)=>{
-    const sl=(v/total)*Math.PI*2;
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,ang+sl);ctx.closePath();
-    ctx.fillStyle=colors[i];ctx.fill();ang+=sl;
+// ── CAMPAIGN MODAL ────────────────────────────────────────
+function openCampModal(stEnc,tgEnc,period){
+  const st=decodeURIComponent(stEnc);const tg=decodeURIComponent(tgEnc);
+  const data=period==='a'?DA_STR:DB_STR;
+  showCampModal(st,tg,data);
+}
+function showCampModal(searchTerm,targeting,data){
+  // Group by campaign, sum metrics
+  const campMap={};
+  data.filter(r=>r.search_term===searchTerm&&r.Targeting===targeting).forEach(r=>{
+    if(!campMap[r.campaign])campMap[r.campaign]={Impressions:0,Clicks:0,Spend:0,orders:0,sales:0};
+    const e=campMap[r.campaign];
+    e.Impressions+=r.Impressions||0;e.Clicks+=r.Clicks||0;e.Spend+=r.Spend||0;e.orders+=r.orders||0;e.sales+=r.sales||0;
   });
-  ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fillStyle='#0f1117';ctx.fill();
-  ctx.fillStyle=colors[1]||'#ef4444';ctx.font='bold 15px IBM Plex Mono';ctx.textAlign='center';
-  ctx.fillText(centerVal,cx,cy+4);
-  ctx.fillStyle='#64748b';ctx.font='8px IBM Plex Mono';ctx.fillText(centerLabel,cx,cy+16);
-  const lx=w*0.65;
-  labels.forEach((l,i)=>{
-    const ly=cy-(labels.length-1)*13+i*26;
-    ctx.fillStyle=colors[i];ctx.beginPath();ctx.roundRect(lx,ly,9,9,2);ctx.fill();
-    ctx.fillStyle='#94a3b8';ctx.font='11px Space Grotesk';ctx.textAlign='left';ctx.fillText(l,lx+13,ly+8);
-    ctx.fillStyle='#e2e8f0';ctx.font='bold 10px IBM Plex Mono';ctx.fillText(values[i].toFixed(1)+'%',lx+13,ly+21);
-  });
+  const camps=Object.entries(campMap).map(([name,m])=>{
+    m.acos=m.sales>0?m.Spend/m.sales:0;m.roas=m.Spend>0?m.sales/m.Spend:0;m.name=name;return m;
+  }).sort((a,b)=>b.orders-a.orders);
+  // Max orders campaign
+  const maxOrdCamp=camps[0]?.name;
+  document.getElementById('campModalTitle').textContent=`"${searchTerm}" — ${camps.length} campaign${camps.length>1?'s':''}`;
+  document.getElementById('campModalBody').innerHTML=camps.map(c=>{
+    const bleeding=c.acos>1;const isTop=c.name===maxOrdCamp;
+    return`<div class="camp-row">
+      <div class="camp-name">${c.name} ${bleeding?'<span class="bleeding">⚠ Bleeding (ACoS>100%)</span>':''} ${isTop&&camps.length>1?'<span style="color:var(--accent4);font-weight:600">★ Top orders</span>':''}</div>
+      <div class="camp-metrics">
+        <div class="camp-metric"><span class="camp-metric-label">Impressions</span><span class="camp-metric-val">${fN(c.Impressions)}</span></div>
+        <div class="camp-metric"><span class="camp-metric-label">Clicks</span><span class="camp-metric-val">${fN(c.Clicks)}</span></div>
+        <div class="camp-metric"><span class="camp-metric-label">Spend</span><span class="camp-metric-val">${fR(c.Spend)}</span></div>
+        <div class="camp-metric"><span class="camp-metric-label">Orders</span><span class="camp-metric-val">${c.orders}</span></div>
+        <div class="camp-metric"><span class="camp-metric-label">Sales</span><span class="camp-metric-val">${fR(c.sales)}</span></div>
+        <div class="camp-metric"><span class="camp-metric-label">ACoS</span><span class="camp-metric-val ${bleeding?'bleeding':''}">${fP(c.acos)}</span></div>
+        <div class="camp-metric"><span class="camp-metric-label">RoAS</span><span class="camp-metric-val">${fX(c.roas)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('campModal').style.display='flex';
+}
+function closeCampModal(){document.getElementById('campModal').style.display='none';}
+
+// ── TOTAL ROWS ────────────────────────────────────────────
+function makeTotalRowSTR(rows){
+  if(!rows.length)return '';
+  const t=sumK(rows);const is_avg=rows.reduce((a,r)=>a+(r.is_share||0),0)/rows.length;
+  return`<tr class="total-row"><td class="left" colspan="5">Σ Total (${rows.length.toLocaleString()} rows)</td>
+    <td class="num">${fN(t.Impressions)}</td><td class="num">${fP(is_avg)}</td>
+    <td class="num">${fN(t.Clicks)}</td><td class="num">${fP(t.ctr)}</td>
+    <td class="num">${fR(t.Spend)}</td><td class="num">${fR(t.cpc)}</td>
+    <td class="num">${t.orders}</td><td class="num">${fR(t.sales)}</td>
+    <td class="num">${fP(t.acos)}</td><td class="num">${fX(t.roas)}</td>
+    <td class="num">${fP(t.cvr)}</td><td class="num">—</td></tr>`;
+}
+function makeTotalRowPLC(rows){
+  if(!rows.length)return '';const t=sumK(rows);
+  return`<tr class="total-row"><td class="left" colspan="5">Σ Total (${rows.length.toLocaleString()} rows)</td>
+    <td class="num">${fN(t.Impressions)}</td><td class="num">${fN(t.Clicks)}</td>
+    <td class="num">${fP(t.ctr)}</td><td class="num">${fR(t.Spend)}</td><td class="num">${fR(t.cpc)}</td>
+    <td class="num">${t.orders}</td><td class="num">${t.units}</td><td class="num">${fR(t.sales)}</td>
+    <td class="num">${fP(t.acos)}</td><td class="num">${fX(t.roas)}</td><td class="num">${fP(t.cvr)}</td></tr>`;
 }
 
-// ── RESET FILTERS ──
-window.resetF = function(tab) {
-  if(tab==='waste'){['wSearch','wMinSpend'].forEach(id=>document.getElementById(id).value='');['wCat','wMT'].forEach(id=>document.getElementById(id).value='');filterTable('wasteTbl',()=>true);}
-  if(tab==='isgap'){['gSearch','gMaxIS','gMinOrders'].forEach(id=>document.getElementById(id).value='');['gCat','gBrand'].forEach(id=>document.getElementById(id).value='');filterTable('isgapTbl',()=>true);}
-  if(tab==='bleed'){['bSearch'].forEach(id=>document.getElementById(id).value='');document.getElementById('bSort').value='autoBleedSpend';filterTable('bleedTbl',()=>true);}
-  if(tab==='camp'){['cSearch'].forEach(id=>document.getElementById(id).value='');['cMT','cPort','cAcos'].forEach(id=>document.getElementById(id).value='');filterTable('campTbl',()=>true);}
-};
+// ── STR TABLE ─────────────────────────────────────────────
+const STR_COLS=[
+  {id:'targeting_display',label:'Targeting',left:true},{id:'search_term',label:'Search Term',left:true},
+  {id:'portfolio',label:'Portfolio',left:true},{id:'match_type',label:'Match',left:true},{id:'bcg',label:'BCG',left:true},
+  {id:'Impressions',label:'Impr'},{id:'is_share',label:'IS%'},
+  {id:'Clicks',label:'Clicks'},{id:'ctr',label:'CTR%'},
+  {id:'Spend',label:'Spend ₹'},{id:'cpc',label:'CPC ₹'},{id:'orders',label:'Orders'},
+  {id:'sales',label:'Sales ₹'},{id:'acos',label:'ACoS%'},{id:'roas',label:'RoAS'},{id:'cvr',label:'Ad CR%'},{id:'is_rank',label:'IS Rank'},
+];
+function bldStrHead(p){
+  const sc=p==='a'?sortA_str:sortB_str,sd=p==='a'?dirA_str:dirB_str;
+  document.getElementById('str-head-'+p).innerHTML=STR_COLS.map(c=>`<th class="${c.left?'left':''}" id="sth-${p}-${c.id}" onclick="sortStr('${p}','${c.id}')">${c.label}</th>`).join('');
+  const el=document.getElementById('sth-'+p+'-'+sc);if(el)el.className=(el.className||'')+' '+(sd>0?'sort-asc':'sort-desc');
+}
+function sortStr(p,col){
+  if(p==='a'){if(sortA_str===col)dirA_str*=-1;else{sortA_str=col;dirA_str=-1;}}
+  else{if(sortB_str===col)dirB_str*=-1;else{sortB_str=col;dirB_str=-1;}}
+  if(p==='a')pgA_str=1;else pgB_str=1;renderStr(p);
+}
+function filterTbl(report,p){
+  const q=(document.getElementById('tfl-srch-'+report+'-'+p)||{}).value||'';const ql=q.toLowerCase();
+  const src=p==='a'?(report==='str'?GA_STR:GA_PLC):(report==='str'?GB_STR:GB_PLC);
+  const mfArr=getMFArr(report,p);
+  let filtered;
+  if(report==='str'){
+    filtered=ql?src.filter(r=>(r.targeting_display||'').toLowerCase().includes(ql)||(r.search_term||'').toLowerCase().includes(ql)||(r.campaign||'').toLowerCase().includes(ql)||(r.portfolio||'').toLowerCase().includes(ql)):[...src];
+  }else{
+    filtered=ql?src.filter(r=>(r.campaign||'').toLowerCase().includes(ql)||(r.portfolio||'').toLowerCase().includes(ql)||(r.category||'').toLowerCase().includes(ql)):[...src];
+  }
+  filtered=applyMF(filtered,mfArr);
+  if(report==='str'){if(p==='a')FA_STR=filtered;else FB_STR=filtered;}
+  else{if(p==='a')FA_PLC=filtered;else FB_PLC=filtered;}
+  if(p==='a'){if(report==='str')pgA_str=1;else pgA_plc=1;}
+  else{if(report==='str')pgB_str=1;else pgB_plc=1;}
+  if(report==='str')renderStr(p);else renderPlc(p);
+}
+function filterStr(p){filterTbl('str',p);}
+function filterPlc(p){filterTbl('plc',p);}
+
+function renderStr(p){
+  bldStrHead(p);
+  const pp=parseInt(document.getElementById('str-pp-'+p).value);
+  const filt=p==='a'?FA_STR:FB_STR;
+  const sc=p==='a'?sortA_str:sortB_str,sd=p==='a'?dirA_str:dirB_str;
+  filt.sort((a,b)=>((a[sc]||0)-(b[sc]||0))*sd);
+  const pg=p==='a'?pgA_str:pgB_str;const tp=Math.ceil(filt.length/pp)||1;
+  const page=Math.max(1,Math.min(pg,tp));
+  if(p==='a')pgA_str=page;else pgB_str=page;
+  const slice=filt.slice((page-1)*pp,page*pp);
+  const asinRe=/^[A-Z0-9]{10}$/;
+  const bcgCls={'Gen':'badge-gen','Comp':'badge-comp','Branded':'badge-branded','Mix':'badge-mix'};
+  const srcData=p==='a'?DA_STR:DB_STR;
+  const totalRow=makeTotalRowSTR(filt);
+  document.getElementById('str-body-'+p).innerHTML=totalRow+slice.map(r=>{
+    const isA=asinRe.test(r.targeting_display);
+    const info=ASIN_MAP[r.targeting_display];
+    const tCell=isA?`<a class="asin-link" href="${info?'https://'+info.url:'https://www.amazon.in/dp/'+r.targeting_display}" target="_blank" title="${info?info.title:r.targeting_display}">${r.targeting_display}</a>`:`<span title="${r.Targeting}">${(r.targeting_display||'').slice(0,36)}</span>`;
+    const mt=r.match_type==='-'?'Auto':r.match_type;
+    const campCountData=srcData.filter(x=>x.search_term===r.search_term&&x.Targeting===r.Targeting);
+    const camps=[...new Set(campCountData.map(x=>x.campaign))].filter(Boolean);
+    const stEnc=encodeURIComponent(r.search_term);const tgEnc=encodeURIComponent(r.Targeting);
+    const campLink=`<span class="asin-link" style="cursor:pointer;color:var(--accent);font-family:var(--font);font-size:10px;display:block;margin-top:2px;" onclick="openCampModal('${stEnc}','${tgEnc}','${p}')">${r.campaign?r.campaign.slice(0,24):''}&nbsp;<span style="color:var(--text3)">(${camps.length} camp${camps.length===1?'':'s'})</span></span>`;
+    // Search term: if starts with b0/B0, treat as ASIN — uppercase and link to PDP
+    const stRaw=r.search_term||'';
+    const stUp=stRaw.toUpperCase();
+    const stIsAsin=/^B0[A-Z0-9]{8}$/.test(stUp);
+    const stInfo=stIsAsin?ASIN_MAP[stUp]:null;
+    const stCell=stIsAsin
+      ?`<a class="asin-link" href="https://www.amazon.in/dp/${stUp}" target="_blank" title="${stInfo?stInfo.title:stUp}">${stUp}</a>`
+      :`<span title="${stRaw}">${stRaw.slice(0,28)}</span>`;
+    return`<tr>
+      <td class="left">${tCell}</td>
+      <td class="left">${stCell}${campLink}</td>
+      <td class="left">${r.portfolio||''}</td>
+      <td class="left"><span class="tag">${mt}</span></td>
+      <td class="left"><span class="badge ${bcgCls[r.bcg]||'badge-gen'}">${r.bcg||''}</span></td>
+      <td class="num">${fN(r.Impressions)}</td>
+      <td class="num">${fP(r.is_share)}</td>
+      <td class="num">${fN(r.Clicks)}</td>
+      <td class="num">${fP(r.ctr)}</td>
+      <td class="num">${fR(r.Spend)}</td><td class="num">${fR(r.cpc)}</td>
+      <td class="num">${r.orders}</td><td class="num">${fR(r.sales)}</td>
+      <td class="num ${r.acos>0.5?'bad':r.acos>0.3?'warn':'good'}">${fP(r.acos)}</td>
+      <td class="num ${r.roas<1?'bad':r.roas<2?'warn':'good'}">${fX(r.roas)}</td>
+      <td class="num">${fP(r.cvr)}</td>
+      <td class="num">${r.is_rank>0?r.is_rank.toFixed(1):'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('str-pgi-'+p).textContent=`${filt.length.toLocaleString()} rows · Page ${page}/${tp}`;
+  document.getElementById('str-prev-'+p).disabled=page<=1;
+  document.getElementById('str-next-'+p).disabled=page>=tp;
+}
+function strPg(p,d){if(p==='a')pgA_str+=d;else pgB_str+=d;renderStr(p);}
+
+// ── PLC TABLE ─────────────────────────────────────────────
+const PLC_COLS=[
+  {id:'campaign',label:'Campaign',left:true},{id:'portfolio',label:'Portfolio',left:true},
+  {id:'placement_short',label:'Placement',left:true},{id:'bcg',label:'BCG',left:true},{id:'category',label:'Category',left:true},
+  {id:'Impressions',label:'Impr'},{id:'Clicks',label:'Clicks'},{id:'ctr',label:'CTR%'},
+  {id:'Spend',label:'Spend ₹'},{id:'cpc',label:'CPC ₹'},{id:'orders',label:'Orders'},
+  {id:'units',label:'Units'},{id:'sales',label:'Sales ₹'},{id:'acos',label:'ACoS%'},
+  {id:'roas',label:'RoAS'},{id:'cr',label:'Ad CR%'},
+];
+function bldPlcHead(p){
+  const sc=p==='a'?sortA_plc:sortB_plc,sd=p==='a'?dirA_plc:dirB_plc;
+  document.getElementById('plc-head-'+p).innerHTML=PLC_COLS.map(c=>`<th class="${c.left?'left':''}" id="pth-${p}-${c.id}" onclick="sortPlc('${p}','${c.id}')">${c.label}</th>`).join('');
+  const el=document.getElementById('pth-'+p+'-'+sc);if(el)el.className=(el.className||'')+' '+(sd>0?'sort-asc':'sort-desc');
+}
+function sortPlc(p,col){
+  if(p==='a'){if(sortA_plc===col)dirA_plc*=-1;else{sortA_plc=col;dirA_plc=-1;}}
+  else{if(sortB_plc===col)dirB_plc*=-1;else{sortB_plc=col;dirB_plc=-1;}}
+  if(p==='a')pgA_plc=1;else pgB_plc=1;renderPlc(p);
+}
+function renderPlc(p){
+  bldPlcHead(p);
+  const pp=parseInt(document.getElementById('plc-pp-'+p).value);
+  const filt=p==='a'?FA_PLC:FB_PLC;
+  const sc=p==='a'?sortA_plc:sortB_plc,sd=p==='a'?dirA_plc:dirB_plc;
+  filt.sort((a,b)=>((a[sc]||0)-(b[sc]||0))*sd);
+  const pg=p==='a'?pgA_plc:pgB_plc;const tp=Math.ceil(filt.length/pp)||1;
+  const page=Math.max(1,Math.min(pg,tp));
+  if(p==='a')pgA_plc=page;else pgB_plc=page;
+  const slice=filt.slice((page-1)*pp,page*pp);
+  const pb={TOS:'badge-tos',ROS:'badge-ros',PP:'badge-pp'};
+  const bc={'Gen':'badge-gen','Comp':'badge-comp','Branded':'badge-branded','Mix':'badge-mix'};
+  const totalRow=makeTotalRowPLC(filt);
+  document.getElementById('plc-body-'+p).innerHTML=totalRow+slice.map(r=>`<tr>
+    <td class="left" title="${r.campaign}">${r.campaign.slice(0,32)}</td>
+    <td class="left">${r.portfolio||''}</td>
+    <td class="left"><span class="badge ${pb[r.placement_short]||''}">${r.placement_short}</span></td>
+    <td class="left"><span class="badge ${bc[r.bcg]||'badge-gen'}">${r.bcg||''}</span></td>
+    <td class="left">${r.category||''}</td>
+    <td class="num">${fN(r.Impressions)}</td><td class="num">${fN(r.Clicks)}</td>
+    <td class="num">${fP(r.ctr)}</td><td class="num">${fR(r.Spend)}</td><td class="num">${fR(r.cpc)}</td>
+    <td class="num">${r.orders}</td><td class="num">${r.units}</td><td class="num">${fR(r.sales)}</td>
+    <td class="num ${r.acos>0.5?'bad':r.acos>0.3?'warn':'good'}">${fP(r.acos)}</td>
+    <td class="num ${r.roas<1?'bad':r.roas<2?'warn':'good'}">${fX(r.roas)}</td>
+    <td class="num">${fP(r.cr)}</td>
+  </tr>`).join('');
+  document.getElementById('plc-pgi-'+p).textContent=`${filt.length.toLocaleString()} rows · Page ${page}/${tp}`;
+  document.getElementById('plc-prev-'+p).disabled=page<=1;
+  document.getElementById('plc-next-'+p).disabled=page>=tp;
+}
+function plcPg(p,d){if(p==='a')pgA_plc+=d;else pgB_plc+=d;renderPlc(p);}
+
+// ── UI HELPERS ────────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='str')||(i===1&&tab==='placement')));
+  document.getElementById('panel-str').classList.toggle('active',tab==='str');
+  document.getElementById('panel-placement').classList.toggle('active',tab==='placement');
+  ['a','b'].forEach(p=>{
+    const mw=document.getElementById(p+'_match_wrap'),pw=document.getElementById(p+'_plc_wrap');
+    if(mw)mw.style.display=tab==='str'?'':'none';
+    if(pw)pw.style.display=tab==='placement'?'':'none';
+  });
+  if(tab==='placement')renderPlcChart();
+  if(tab==='str')renderTrend();
+}
+function toggleCompare(){
+  cmpMode=!cmpMode;
+  const btn=document.getElementById('cmpBtn');
+  btn.classList.toggle('on',cmpMode);btn.textContent=cmpMode?'✕ Close Compare':'⟳ Compare periods';
+  document.getElementById('fbarB').style.display=cmpMode?'':'none';
+  if(cmpMode){
+    const from=new Date(document.getElementById('a_from').value);
+    const to=new Date(document.getElementById('a_to').value);
+    const diff=to-from;
+    const bTo=new Date(from.getTime()-86400000);
+    const bFrom=new Date(bTo.getTime()-diff);
+    document.getElementById('b_from').value=bFrom.toISOString().slice(0,10);
+    document.getElementById('b_to').value=bTo.toISOString().slice(0,10);
+  }
+  applyFilters();
+}
+function setQuick(days,period,el){
+  const bar=period==='a'?document.getElementById('fbarA'):document.getElementById('fbarB');
+  bar.querySelectorAll('.qdb').forEach(b=>b.classList.remove('active'));el.classList.add('active');
+  const allDates=[...new Set([...RAW_STR.map(r=>r.Date),...RAW_PLC.map(r=>r.Date)])].sort();
+  const lastDate=allDates.length?allDates[allDates.length-1]:'';
+  const firstDate=allDates.length?allDates[0]:'';
+  if(!lastDate)return;
+  if(days===0){
+    document.getElementById(period+'_from').value=firstDate;
+    document.getElementById(period+'_to').value=lastDate;
+  }else{
+    const toD=new Date(lastDate);
+    const fromD=new Date(toD.getTime()-(days-1)*86400000);
+    document.getElementById(period+'_from').value=fromD.toISOString().slice(0,10);
+    document.getElementById(period+'_to').value=lastDate;
+  }
+  applyFilters();
+}
+
+window.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
 </html>
