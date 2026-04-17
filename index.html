@@ -164,6 +164,10 @@ tr:last-child td{border-bottom:0;}
 .badge-comp{background:#fee2e2;color:#b91c1c;}
 .badge-branded{background:#dbeafe;color:#1d4ed8;}
 .badge-mix{background:#ede9fe;color:#6d28d9;}
+.badge-def{background:#d1fae5;color:#065f46;}
+.badge-ext1{background:#fef3c7;color:#92400e;}
+.badge-ext2{background:#fce7f3;color:#9d174d;}
+.badge-ext3{background:#e0f2fe;color:#075985;}
 .tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;background:var(--surface3);color:var(--text3);}
 .num{font-family:var(--mono);}
 .good{color:var(--accent4);font-weight:600;}
@@ -443,7 +447,7 @@ tr.total-row td.left{color:var(--accent);font-family:var(--font);}
     <select id="a_cat" onchange="applyFilters()"><option value="">All</option></select></div>
   <div class="fg"><span class="fl">BCG</span>
     <select id="a_bcg" onchange="applyFilters()">
-      <option value="">All</option><option>Gen</option><option>Comp</option><option>Branded</option><option>Mix</option>
+      <option value="">All</option>
     </select></div>
   <div class="fg"><span class="fl">Campaign</span>
     <select id="a_camp" class="camp-sel" onchange="applyFilters()"><option value="">All</option></select></div>
@@ -479,7 +483,7 @@ tr.total-row td.left{color:var(--accent);font-family:var(--font);}
     <select id="b_cat" onchange="applyFilters()"><option value="">All</option></select></div>
   <div class="fg"><span class="fl">BCG</span>
     <select id="b_bcg" onchange="applyFilters()">
-      <option value="">All</option><option>Gen</option><option>Comp</option><option>Branded</option><option>Mix</option>
+      <option value="">All</option>
     </select></div>
   <div class="fg"><span class="fl">Campaign</span>
     <select id="b_camp" class="camp-sel" onchange="applyFilters()"><option value="">All</option></select></div>
@@ -633,6 +637,22 @@ tr.total-row td.left{color:var(--accent);font-family:var(--font);}
 <script>
 const ASIN_MAP = {};
 let RAW_STR=[], RAW_PLC=[], ALL_CAMPS=[], BRAND_NAME='Ace Blend';
+// Dynamic BCG badge colors — cycling palette for any BCG value
+const BCG_PALETTE=['badge-gen','badge-comp','badge-branded','badge-mix',
+  'badge-def','badge-ext1','badge-ext2','badge-ext3'];
+const _bcgClsCache={};
+function getBcgCls(val){
+  if(!val)return 'badge-gen';
+  if(_bcgClsCache[val])return _bcgClsCache[val];
+  const known={gen:'badge-gen',comp:'badge-comp',branded:'badge-branded',mix:'badge-mix'};
+  const lv=val.toLowerCase();
+  if(known[lv]){_bcgClsCache[val]=known[lv];return known[lv];}
+  // Assign from palette for unknown values
+  const used=Object.values(_bcgClsCache);
+  const next=BCG_PALETTE.find(c=>!used.includes(c))||'badge-ext3';
+  _bcgClsCache[val]=next;
+  return next;
+}
 let DA_STR=[], DA_PLC=[], DB_STR=[], DB_PLC=[];
 let GA_STR=[], GA_PLC=[], GB_STR=[], GB_PLC=[];
 let FA_STR=[], FA_PLC=[], FB_STR=[], FB_PLC=[];
@@ -903,6 +923,13 @@ async function loadData(strData,plcData,brandName){
     const s=document.getElementById(id);
     while(s.options.length>1)s.remove(1);
     cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.text=c;s.appendChild(o);});
+  });
+  // BCG values — dynamic from actual data
+  const bcgVals=[...new Set([...RAW_STR.map(r=>r.bcg),...RAW_PLC.map(r=>r.bcg)])].filter(Boolean).sort();
+  ['a_bcg','b_bcg'].forEach(id=>{
+    const s=document.getElementById(id);
+    while(s.options.length>1)s.remove(1);
+    bcgVals.forEach(v=>{const o=document.createElement('option');o.value=v;o.text=v;s.appendChild(o);});
   });
   ['a_camp','b_camp'].forEach(id=>{
     const s=document.getElementById(id);
@@ -1487,7 +1514,7 @@ function renderStr(p){
   if(p==='a')pgA_str=page;else pgB_str=page;
   const slice=filt.slice((page-1)*pp,page*pp);
   const asinRe=/^[A-Z0-9]{10}$/;
-  const bcgCls={'Gen':'badge-gen','Comp':'badge-comp','Branded':'badge-branded','Mix':'badge-mix'};
+  // bcgCls resolved dynamically via getBcgCls()
   const srcData=p==='a'?DA_STR:DB_STR;
   const totalRow=makeTotalRowSTR(filt);
   document.getElementById('str-body-'+p).innerHTML=totalRow+slice.map(r=>{
@@ -1512,7 +1539,7 @@ function renderStr(p){
       <td class="left">${stCell}${campLink}</td>
       <td class="left">${r.portfolio||''}</td>
       <td class="left"><span class="tag">${mt}</span></td>
-      <td class="left"><span class="badge ${bcgCls[r.bcg]||'badge-gen'}">${r.bcg||''}</span></td>
+      <td class="left"><span class="badge ${getBcgCls(r.bcg)}">${r.bcg||''}</span></td>
       <td class="num">${fN(r.Impressions)}</td>
       <td class="num">${fP(r.is_share)}</td>
       <td class="num">${fN(r.Clicks)}</td>
@@ -1561,13 +1588,13 @@ function renderPlc(p){
   if(p==='a')pgA_plc=page;else pgB_plc=page;
   const slice=filt.slice((page-1)*pp,page*pp);
   const pb={TOS:'badge-tos',ROS:'badge-ros',PP:'badge-pp'};
-  const bc={'Gen':'badge-gen','Comp':'badge-comp','Branded':'badge-branded','Mix':'badge-mix'};
+  // bc resolved dynamically via getBcgCls()
   const totalRow=makeTotalRowPLC(filt);
   document.getElementById('plc-body-'+p).innerHTML=totalRow+slice.map(r=>`<tr>
     <td class="left" title="${r.campaign}">${r.campaign.slice(0,32)}</td>
     <td class="left">${r.portfolio||''}</td>
     <td class="left"><span class="badge ${pb[r.placement_short]||''}">${r.placement_short}</span></td>
-    <td class="left"><span class="badge ${bc[r.bcg]||'badge-gen'}">${r.bcg||''}</span></td>
+    <td class="left"><span class="badge ${getBcgCls(r.bcg)}">${r.bcg||''}</span></td>
     <td class="left">${r.category||''}</td>
     <td class="num">${fN(r.Impressions)}</td><td class="num">${fN(r.Clicks)}</td>
     <td class="num">${fP(r.ctr)}</td><td class="num">${fR(r.Spend)}</td><td class="num">${fR(r.cpc)}</td>
