@@ -761,10 +761,7 @@ async function handleFileObj(file){
     }
     prog.textContent='Building records…';
 
-    // Normalise STR
-    // ── Fuzzy column finder: finds column regardless of "7 Day"/"14 Day" prefix,
-// trailing spaces, "Thru" vs "Through", or other Amazon naming variations.
-// Strip ₹ sign, commas, spaces before parsing — handles Indian formatted numbers
+    // ── cleanNum: strips ₹ and commas before parsing ──────────────
     const cleanNum=(v,isInt=false)=>{
       if(v===null||v===undefined||v==='')return 0;
       if(typeof v==='number')return isInt?Math.round(v):v;
@@ -773,43 +770,69 @@ async function handleFileObj(file){
       const n=isInt?parseInt(s):parseFloat(s);
       return isNaN(n)?0:n;
     };
-    const colFind=(row,keywords,isInt=false)=>{
-      const keys=Object.keys(row);
-      for(const kw of keywords){
-        const kl=kw.toLowerCase().trim();
-        const exact=keys.find(k=>k.trim().toLowerCase()===kl);
-        if(exact!==undefined&&row[exact]!==''&&row[exact]!==null){
-          return cleanNum(row[exact],isInt);
-        }
+
+    // ── Column scanner: finds exact key in a row matching any keyword ──
+    // Tries exact match first (case-insensitive, trimmed), then substring match.
+    const findCol=(keys,candidates)=>{
+      for(const c of candidates){
+        const cl=c.toLowerCase().trim();
+        const k=keys.find(k=>k.trim().toLowerCase()===cl);
+        if(k!==undefined)return k;
       }
-      for(const kw of keywords){
-        const parts=kw.toLowerCase().split('|').map(s=>s.trim()).filter(Boolean);
-        const match=keys.find(k=>parts.every(p=>k.toLowerCase().includes(p)));
-        if(match!==undefined&&row[match]!==''&&row[match]!==null){
-          return cleanNum(row[match],isInt);
-        }
+      for(const c of candidates){
+        const cl=c.toLowerCase().trim();
+        const k=keys.find(k=>k.toLowerCase().includes(cl));
+        if(k!==undefined)return k;
       }
-      return 0;
+      return null;
     };
-    const findSalesCol=row=>{
-      const keys=Object.keys(row);
-      // Try specific patterns first
-      const pref=['total sales','day total sales'];
-      for(const p of pref){const k=keys.find(k=>k.toLowerCase().includes(p));if(k&&row[k]!==undefined)return cleanNum(row[k],false);}
-      // Fallback: any col with 'sales' but not acos/cost
-      const k=keys.find(k=>{const kl=k.toLowerCase();return kl.includes('sales')&&!kl.includes('acos')&&!kl.includes('cost');});
-      return k?cleanNum(row[k],false):0;
-    };
-    const findOrdersCol=row=>{
-      const keys=Object.keys(row);
-      // Priority list — most specific first, then plain "Orders"
-      const pref=['total orders (#)','total orders','day total orders','orders (#)','orders'];
-      for(const p of pref){
-        const k=keys.find(k=>k.trim().toLowerCase()===p||k.trim().toLowerCase().includes(p));
-        if(k&&row[k]!==undefined&&row[k]!=='')return cleanNum(row[k],true);
-      }
-      return 0;
-    };
+
+    // ── Detect column layout from first STR row ────────────────────
+    const strKeys=strRaw.length?Object.keys(strRaw[0]):[];
+
+    // Orders: try every known variant, pick first found key
+    const ordersKey=findCol(strKeys,[
+      '7 day total orders (#)','14 day total orders (#)',
+      'total orders (#)','orders (#)','orders'
+    ]);
+    // Units (placement reports sometimes have units instead)
+    const unitsKey=findCol(strKeys,[
+      '7 day total units (#)','14 day total units (#)',
+      'total units (#)','units (#)','units'
+    ]);
+    // Sales
+    const salesKey=findCol(strKeys,[
+      '7 day total sales','14 day total sales',
+      'total sales','sales'
+    ]);
+    // CVR
+    const cvrKey=findCol(strKeys,[
+      '7 day conversion rate','14 day conversion rate',
+      'conversion rate','cvr'
+    ]);
+    // CTR
+    const ctrKey=findCol(strKeys,[
+      'click-through rate (ctr)','click-thru rate (ctr)',
+      'click-through rate','click-thru rate','ctr'
+    ]);
+    // ACOS
+    const acosKey=findCol(strKeys,[
+      'total advertising cost of sales (acos)',
+      'advertising cost of sales','acos'
+    ]);
+
+    // Decide whether to show "orders" or "units" on the frontend
+    // (whichever column is actually present in the data)
+    const hasOrders=!!ordersKey;
+    const hasUnits=!!unitsKey&&!hasOrders;
+    // Store detected column info globally for rendering
+    window._STR_CONV_KEY  = ordersKey||unitsKey||null;
+    window._STR_CONV_LABEL= hasOrders?'Orders':hasUnits?'Units':'Orders';
+    window._STR_CONV_ISUNIT= hasUnits;
+
+    console.log('[ADS] Detected cols → orders:',ordersKey,'units:',unitsKey,
+      'sales:',salesKey,'cvr:',cvrKey,'ctr:',ctrKey,'acos:',acosKey);
+
     const strNorm=strRaw.map(r=>{
       const targeting=r['Targeting']||r['targeting']||'';
       const asinM=targeting.match(/asin="([A-Z0-9]{10})"/);
@@ -830,23 +853,31 @@ async function handleFileObj(file){
         search_term:r['Customer Search Term']||r['search_term']||td,
         Targeting:targeting,
         targeting_display:td,
-        is_rank:colFind(r,['search term impression rank']),
-        is_share:colFind(r,['search term impression share']),
-        Clicks:colFind(r,['clicks'],true),
-        Impressions:colFind(r,['impressions'],true),
-        Spend:colFind(r,['spend']),
-        ctr_raw:colFind(r,['click-thru rate','click-through rate','ctr']),
-        cpc:colFind(r,['cost per click']),
-        orders:findOrdersCol(r),
-        sales:findSalesCol(r),
-        acos:colFind(r,['advertising cost of sales','acos']),
-        roas:colFind(r,['return on advertising spend','roas']),
-        cvr:colFind(r,['conversion rate']),
+        is_rank:cleanNum(r['Search Term Impression Rank']),
+        is_share:cleanNum(r['Search Term Impression Share']),
+        Clicks:cleanNum(r['Clicks'],true),
+        Impressions:cleanNum(r['Impressions'],true),
+        Spend:cleanNum(r['Spend']),
+        cpc:cleanNum(r['Cost Per Click (CPC)']||r['cpc']),
+        ctr:ctrKey?cleanNum(r[ctrKey]):0,
+        orders:ordersKey?cleanNum(r[ordersKey],true):0,
+        units:unitsKey?cleanNum(r[unitsKey],true):0,
+        sales:salesKey?cleanNum(r[salesKey]):0,
+        acos:acosKey?cleanNum(r[acosKey]):0,
+        roas:cleanNum(r['Total Return on Advertising Spend (ROAS)']||r['roas']),
+        cvr:cvrKey?cleanNum(r[cvrKey]):0,
         bcg:cm.bcg||'',
         category:cm.category||'',
       };
     }).filter(r=>r.Date);
-    // Normalise PLC
+
+    // ── PLC: same approach ─────────────────────────────────────────
+    const plcKeys=plcRaw.length?Object.keys(plcRaw[0]):[];
+    const plcOrdersKey=findCol(plcKeys,['7 day total orders (#)','14 day total orders (#)','total orders (#)','orders (#)','orders']);
+    const plcUnitsKey =findCol(plcKeys,['7 day total units (#)','14 day total units (#)','total units (#)','units (#)','units']);
+    const plcSalesKey =findCol(plcKeys,['7 day total sales','14 day total sales','total sales','sales']);
+    const plcAcosKey  =findCol(plcKeys,['total advertising cost of sales (acos)','advertising cost of sales','acos']);
+
     const plcNorm=plcRaw.map(r=>{
       const dateRaw=r['Date']||'';
       let dateStr='';
@@ -863,15 +894,15 @@ async function handleFileObj(file){
         campaign:camp,
         Placement:plcRaw2,
         placement_short:plcMap[plcRaw2]||plcRaw2,
-        Impressions:cleanNum(r['Impressions'])||0,
-        Clicks:cleanNum(r['Clicks'])||0,
-        Spend:cleanNum(r['Spend'])||0,
-        cpc:cleanNum(r['Cost Per Click (CPC)']||r['cpc'])||0,
-        orders:findOrdersCol(r),
-        units:(()=>{const keys=Object.keys(r);const pref=['total units (#)','total units','day total units'];for(const p of pref){const k=keys.find(k=>k.toLowerCase().includes(p));if(k&&r[k]!==undefined)return cleanNum(r[k],true);}return 0;})(),
-        sales:findSalesCol(r),
-        acos:cleanNum(r['Total Advertising Cost of Sales (ACOS) ']||r['acos'])||0,
-        roas:cleanNum(r['Total Return on Advertising Spend (ROAS)']||r['roas'])||0,
+        Impressions:cleanNum(r['Impressions'],true),
+        Clicks:cleanNum(r['Clicks'],true),
+        Spend:cleanNum(r['Spend']),
+        cpc:cleanNum(r['Cost Per Click (CPC)']||r['cpc']),
+        orders:plcOrdersKey?cleanNum(r[plcOrdersKey],true):0,
+        units:plcUnitsKey?cleanNum(r[plcUnitsKey],true):0,
+        sales:plcSalesKey?cleanNum(r[plcSalesKey]):0,
+        acos:plcAcosKey?cleanNum(r[plcAcosKey]):0,
+        roas:cleanNum(r['Total Return on Advertising Spend (ROAS)']||r['roas']),
         bcg:cm.bcg||'',
         category:cm.category||'',
       };
@@ -1175,8 +1206,8 @@ function aggSTR(data){
   const map={};
   data.forEach(r=>{
     const k=r.Targeting+'|'+r.portfolio+'|'+r.match_type+'|'+r.bcg+'|'+r.targeting_display+'|'+r.search_term+'|'+r.campaign;
-    if(!map[k])map[k]={targeting_display:r.targeting_display,search_term:r.search_term,Targeting:r.Targeting,portfolio:r.portfolio,campaign:r.campaign,match_type:r.match_type,bcg:r.bcg,category:r.category,Impressions:0,Clicks:0,Spend:0,orders:0,sales:0,is_s:0,ir_s:0,n:0};
-    const e=map[k];e.Impressions+=r.Impressions||0;e.Clicks+=r.Clicks||0;e.Spend+=r.Spend||0;e.orders+=r.orders||0;e.sales+=r.sales||0;e.is_s+=r.is_share||0;e.ir_s+=r.is_rank||0;e.n++;
+    if(!map[k])map[k]={targeting_display:r.targeting_display,search_term:r.search_term,Targeting:r.Targeting,portfolio:r.portfolio,campaign:r.campaign,match_type:r.match_type,bcg:r.bcg,category:r.category,Impressions:0,Clicks:0,Spend:0,orders:0,units:0,sales:0,is_s:0,ir_s:0,n:0};
+    const e=map[k];e.Impressions+=r.Impressions||0;e.Clicks+=r.Clicks||0;e.Spend+=r.Spend||0;e.orders+=r.orders||0;e.units+=r.units||0;e.sales+=r.sales||0;e.is_s+=r.is_share||0;e.ir_s+=r.is_rank||0;e.n++;
   });
   return Object.values(map).map(r=>{r.ctr=r.Impressions>0?r.Clicks/r.Impressions:0;r.cpc=r.Clicks>0?r.Spend/r.Clicks:0;r.acos=r.sales>0?r.Spend/r.sales:0;r.roas=r.Spend>0?r.sales/r.Spend:0;r.cvr=r.Clicks>0?r.orders/r.Clicks:0;r.is_share=r.n>0?r.is_s/r.n:0;r.is_rank=r.n>0?r.ir_s/r.n:0;return r;});
 }
@@ -1192,7 +1223,7 @@ function aggPLC(data){
 function sumK(data){
   const s={Impressions:0,Clicks:0,Spend:0,orders:0,sales:0,units:0};
   data.forEach(r=>{s.Impressions+=r.Impressions||0;s.Clicks+=r.Clicks||0;s.Spend+=r.Spend||0;s.orders+=r.orders||0;s.sales+=r.sales||0;s.units+=r.units||0;});
-  s.ctr=s.Impressions>0?s.Clicks/s.Impressions:0;s.cpc=s.Clicks>0?s.Spend/s.Clicks:0;s.acos=s.sales>0?s.Spend/s.sales:0;s.roas=s.Spend>0?s.sales/s.Spend:0;s.cvr=s.Clicks>0?s.orders/s.Clicks:0;
+  s.ctr=s.Impressions>0?s.Clicks/s.Impressions:0;s.cpc=s.Clicks>0?s.Spend/s.Clicks:0;s.acos=s.sales>0?s.Spend/s.sales:0;s.roas=s.Spend>0?s.sales/s.Spend:0;const _ord=s.orders||s.units||0;s.cvr=s.Clicks>0?_ord/s.Clicks:0;
   return s;
 }
 
@@ -1221,7 +1252,7 @@ function renderKPIs(elId,curr,cmp,isSTR,period){
     ['CTR',fP(s.ctr),'ks-cyan',s.ctr,ps?.ctr,true],
     ['Spend ₹',fR(s.Spend),'ks-orange',s.Spend,ps?.Spend,false],
     ['CPC ₹',fR(s.cpc),'ks-amber',s.cpc,ps?.cpc,false],
-    ['Orders',fN(s.orders),'ks-green',s.orders,ps?.orders,true],
+    [(window._STR_CONV_LABEL||'Orders'),fN(s.orders||s.units||0),'ks-green',s.orders||s.units||0,ps?(ps.orders||ps.units||0):null,true],
     ...(!isSTR?[['Units',fN(s.units),'ks-green',s.units,ps?.units,true]]:[]),
     ['Sales ₹',fR(s.sales),'ks-green',s.sales,ps?.sales,true],
     ['ACoS',fP(s.acos),s.acos>0.5?'ks-red':s.acos>0.3?'ks-amber':'ks-green',s.acos,ps?.acos,false],
@@ -1265,7 +1296,7 @@ function buildDailySTR(data,metric){
     v.cl+=r.Clicks||0;
     v.im+=r.Impressions||0;
     v.sp+=r.Spend||0;
-    v.or+=r.orders||0;
+    v.or+=(r.orders||r.units||0);
     v.sa+=r.sales||0;
     // For the selected metric, accumulate raw value only for non-derived metrics
     if(!['ctr','acos','cpc','roas','cvr'].includes(metric))v.s+=r[metric]||0;
@@ -1278,7 +1309,7 @@ function buildDailySTR(data,metric){
     if(metric==='cpc')return v.cl>0?v.sp/v.cl:0;
     if(metric==='roas')return v.sp>0?v.sa/v.sp:0;
     if(metric==='cvr')return v.cl>0?v.or/v.cl:0;
-    if(metric==='orders')return v.or;
+    if(metric==='orders')return v.or||v.un;
     if(metric==='sales')return v.sa;
     if(metric==='Spend')return v.sp;
     if(metric==='Clicks')return v.cl;
@@ -1451,7 +1482,7 @@ function makeTotalRowSTR(rows){
     <td class="num">${fN(t.Impressions)}</td><td class="num">${fP(is_avg)}</td>
     <td class="num">${fN(t.Clicks)}</td><td class="num">${fP(t.ctr)}</td>
     <td class="num">${fR(t.Spend)}</td><td class="num">${fR(t.cpc)}</td>
-    <td class="num">${t.orders}</td><td class="num">${fR(t.sales)}</td>
+    <td class="num">${(t.orders||t.units||0).toLocaleString()}</td><td class="num">${fR(t.sales)}</td>
     <td class="num">${fP(t.acos)}</td><td class="num">${fX(t.roas)}</td>
     <td class="num">${fP(t.cvr)}</td><td class="num">—</td></tr>`;
 }
@@ -1470,7 +1501,7 @@ const STR_COLS=[
   {id:'portfolio',label:'Portfolio',left:true},{id:'match_type',label:'Match',left:true},{id:'bcg',label:'BCG',left:true},
   {id:'Impressions',label:'Impr'},{id:'is_share',label:'IS%'},
   {id:'Clicks',label:'Clicks'},{id:'ctr',label:'CTR%'},
-  {id:'Spend',label:'Spend ₹'},{id:'cpc',label:'CPC ₹'},{id:'orders',label:'Orders'},
+  {id:'Spend',label:'Spend ₹'},{id:'cpc',label:'CPC ₹'},{id:'orders',label:(window._STR_CONV_LABEL||'Orders')},
   {id:'sales',label:'Sales ₹'},{id:'acos',label:'ACoS%'},{id:'roas',label:'RoAS'},{id:'cvr',label:'Ad CR%'},{id:'is_rank',label:'IS Rank'},
 ];
 function bldStrHead(p){
@@ -1545,7 +1576,7 @@ function renderStr(p){
       <td class="num">${fN(r.Clicks)}</td>
       <td class="num">${fP(r.ctr)}</td>
       <td class="num">${fR(r.Spend)}</td><td class="num">${fR(r.cpc)}</td>
-      <td class="num">${r.orders}</td><td class="num">${fR(r.sales)}</td>
+      <td class="num">${r.orders||r.units||0}</td><td class="num">${fR(r.sales)}</td>
       <td class="num ${r.acos>0.5?'bad':r.acos>0.3?'warn':'good'}">${fP(r.acos)}</td>
       <td class="num ${r.roas<1?'bad':r.roas<2?'warn':'good'}">${fX(r.roas)}</td>
       <td class="num">${fP(r.cvr)}</td>
@@ -1563,7 +1594,7 @@ const PLC_COLS=[
   {id:'campaign',label:'Campaign',left:true},{id:'portfolio',label:'Portfolio',left:true},
   {id:'placement_short',label:'Placement',left:true},{id:'bcg',label:'BCG',left:true},{id:'category',label:'Category',left:true},
   {id:'Impressions',label:'Impr'},{id:'Clicks',label:'Clicks'},{id:'ctr',label:'CTR%'},
-  {id:'Spend',label:'Spend ₹'},{id:'cpc',label:'CPC ₹'},{id:'orders',label:'Orders'},
+  {id:'Spend',label:'Spend ₹'},{id:'cpc',label:'CPC ₹'},{id:'orders',label:(window._STR_CONV_LABEL||'Orders')},
   {id:'units',label:'Units'},{id:'sales',label:'Sales ₹'},{id:'acos',label:'ACoS%'},
   {id:'roas',label:'RoAS'},{id:'cr',label:'Ad CR%'},
 ];
